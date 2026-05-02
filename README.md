@@ -1,9 +1,15 @@
-[![Contributors][contributors-shield]][contributors-url]
-[![Forks][forks-shield]][forks-url]
-[![Stargazers][stars-shield]][stars-url]
-[![Issues][issues-shield]][issues-url]
-[![MIT License][license-shield]][license-url]
-[![LinkedIn][linkedin-shield]][linkedin-url]
+[contributors-shield]: https://img.shields.io/github/contributors/open-mexico/go-mexpost?style=flat-square
+[contributors-url]: https://github.com/open-mexico/go-mexpost/graphs/contributors
+[forks-shield]: https://img.shields.io/github/forks/open-mexico/go-mexpost?style=flat-square
+[forks-url]: https://github.com/open-mexico/go-mexpost/network/members
+[stars-shield]: https://img.shields.io/github/stars/open-mexico/go-mexpost?style=flat-square
+[stars-url]: https://github.com/open-mexico/go-mexpost/stargazers
+[issues-shield]: https://img.shields.io/github/issues/open-mexico/go-mexpost?style=flat-square
+[issues-url]: https://github.com/open-mexico/go-mexpost/issues
+[license-shield]: https://img.shields.io/github/license/open-mexico/go-mexpost?style=flat-square
+[license-url]: https://github.com/open-mexico/go-mexpost/blob/main/LICENSE
+[linkedin-shield]: https://img.shields.io/badge/-LinkedIn-black.svg?style=flat-square&logo=linkedin&colorB=555
+[linkedin-url]: https://www.linkedin.com/in/macarthuror/
 
 <br />
 <p align="center">
