@@ -9,9 +9,9 @@
 <p align="center">
   <h1 align="center">Go-MexPost 🇲🇽🚀</h1>
 
-  <div align="center">
+  <!-- <div align="center">
     <img align="center" src="assets/mex-post.png" alt="MexPost Logo">
-  </div>
+  </div> -->
 
   <p align="center">
     Microservicio ultrarrápido para consulta de colonias, códigos postales y coordenadas de México.
