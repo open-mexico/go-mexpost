@@ -1,13 +1,40 @@
 package domain
 
+import "errors"
+
+// ErrNotFound se usa cuando la búsqueda no arroja resultados.
+var ErrNotFound = errors.New("no se encontraron resultados")
+
+// ValidationError representa errores de reglas de negocio/entrada.
+type ValidationError struct {
+	Message string
+}
+
+func (e ValidationError) Error() string {
+	return e.Message
+}
+
 // Colonia representa la estructura principal de los datos espaciales y postales.
 type Colonia struct {
-	Codigo      string  `json:"codigo"`
-	Nombre      string  `json:"nombre"`
-	Tipo        string  `json:"tipo"`
-	Ciudad      string  `json:"ciudad"`
-	Zona        string  `json:"zona"`
-	EstadoID    string  `json:"estado_id"`
-	MunicipioID string  `json:"municipio_id"`
-	Geometria   *string `json:"geometria,omitempty"` // Es un puntero porque puede ser nulo (NULL en BD)
+	Codigo      string
+	Nombre      string
+	Tipo        string
+	Ciudad      string
+	Zona        string
+	EstadoID    string
+	MunicipioID string
+	Geometria   *string
+	MinLon      float64
+	MinLat      float64
+	MaxLon      float64
+	MaxLat      float64
+	CentroLon   *float64
+	CentroLat   *float64
+}
+
+// Municipio representa los municipios del catálogo nacional.
+type Municipio struct {
+	ID       string
+	Nombre   string
+	EstadoID string
 }

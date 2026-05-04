@@ -25,6 +25,8 @@ func main() {
 	// 4. Servidor Gin
 	router := gin.Default()
 	router.GET("/colonias", apiHandler.BuscarColonias)
+	router.GET("/municipios", apiHandler.BuscarMunicipios)
+	router.GET("/coordenadas", apiHandler.BuscarCoordenadas)
 
 	log.Println("🚀 Servidor corriendo en http://localhost:8080")
 	if err := router.Run(":8080"); err != nil {
