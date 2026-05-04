@@ -41,10 +41,10 @@ func (r *sqliteRepo) SearchColonias(filter ports.ColoniaSearchFilter) ([]domain.
 
 	if filter.Nombre != "" {
 		if len(filter.Nombre) >= 3 {
-			where = append(where, "nombre LIKE ? COLLATE NOCASE")
+			where = append(where, "nombre_normalizado LIKE ?")
 			args = append(args, "%"+filter.Nombre+"%")
 		} else {
-			where = append(where, "nombre = ? COLLATE NOCASE")
+			where = append(where, "nombre_normalizado = ?")
 			args = append(args, filter.Nombre)
 		}
 	}
@@ -151,10 +151,10 @@ func (r *sqliteRepo) SearchMunicipios(filter ports.MunicipioSearchFilter) ([]dom
 
 	if filter.Nombre != "" {
 		if len(filter.Nombre) >= 3 {
-			where = append(where, "nombre LIKE ? COLLATE NOCASE")
+			where = append(where, "nombre_normalizado LIKE ?")
 			args = append(args, "%"+filter.Nombre+"%")
 		} else {
-			where = append(where, "nombre = ? COLLATE NOCASE")
+			where = append(where, "nombre_normalizado = ?")
 			args = append(args, filter.Nombre)
 		}
 	}
@@ -308,10 +308,10 @@ func (r *sqliteRepo) CountColonias(filter ports.ColoniaSearchFilter) (int, error
 	}
 	if filter.Nombre != "" {
 		if len(filter.Nombre) >= 3 {
-			where = append(where, "nombre LIKE ? COLLATE NOCASE")
+			where = append(where, "nombre_normalizado LIKE ? ")
 			args = append(args, "%"+filter.Nombre+"%")
 		} else {
-			where = append(where, "nombre = ? COLLATE NOCASE")
+			where = append(where, "nombre_normalizado = ? ")
 			args = append(args, filter.Nombre)
 		}
 	}
