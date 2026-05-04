@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"os"
 
 	"github.com/gin-gonic/gin"
 	"github.com/open-mexico/go-mexpost/internal/adapters/handler"
@@ -24,12 +25,20 @@ func main() {
 
 	// 4. Servidor Gin
 	router := gin.Default()
+	if err := router.SetTrustedProxies(nil); err != nil {
+		log.Fatalf("❌ Error configurando proxies confiables: %v", err)
+	}
 	router.GET("/colonias", apiHandler.BuscarColonias)
 	router.GET("/municipios", apiHandler.BuscarMunicipios)
 	router.GET("/coordenadas", apiHandler.BuscarCoordenadas)
 
-	log.Println("🚀 Servidor corriendo en http://localhost:8080")
-	if err := router.Run(":8080"); err != nil {
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+
+	log.Printf("🚀 Servidor corriendo en http://localhost:%s", port)
+	if err := router.Run(":" + port); err != nil {
 		log.Fatalf("❌ Error al iniciar servidor: %v", err)
 	}
 }
