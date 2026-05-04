@@ -61,6 +61,83 @@ git clone [https://github.com/open-mexico/go-mexpost.git](https://github.com/ope
 cd go-mexpost
 ```
 
+### 2. Instalar dependencias
+
+```bash
+go mod tidy
+```
+
+### 3. Descargar la Base de Datos
+Go-MexPost cuenta con un comando especial para descargar la base de datos oficial (generada en nuestro repo ETL) directamente a tu proyecto.
+
+Opción A (Ligera): Solo datos postales y de texto (ideal para formularios).
+
+```bash
+go run ./cmd/setup/main.go
+```
+
+Opción B (Espacial): Datos postales + Polígonos GeoJSON (ideal para mapas).
+
+```bash
+go run ./cmd/setup/main.go -geo=true
+```
+
+### 4. Iniciar el Servidor
+```bash
+go run ./cmd/api/main.go
+```
+
+La API estará corriendo en http://localhost:8080.
+
+🛠️ Herramientas y Tecnologías
+`Golang` (1.26+): Lenguaje principal.
+
+Gin-Gonic: Framework web HTTP de alto rendimiento.
+
+SQLite (modernc.org): Driver de base de datos embebida 100% en Go (CGO-free).
+
+Testify: Herramientas para pruebas unitarias (Mocks y Asserts).
+
+## 📊 Fuente de Datos
+La información es extraída, limpiada y optimizada desde las fuentes oficiales del Servicio Postal Mexicano (SEPOMEX/Correos de México) y cruzada con límites espaciales de Open Mexico GeoJSON.
+
+## 🔑 Palabras Clave
+- Golang
+- Microservicio
+- Códigos Postales México
+- SEPOMEX API
+- GeoJSON México
+- Georreferenciación
+- SQLite
+- Arquitectura Hexagonal
+- API REST México
+- Open Source
+
+## 🤝 Contribuir
+¡Las contribuciones son lo que hace a la comunidad de código abierto un lugar increíble! Si tienes una sugerencia para mejorar esto, por favor haz un fork del repositorio y crea un pull request.
+
+Haz un Fork del proyecto
+
+Crea tu rama de característica (git checkout -b feature/CaracteristicaIncreible)
+
+Haz commit de tus cambios (git commit -m 'Añadir CaracteristicaIncreible')
+
+Haz Push a la rama (git push origin feature/CaracteristicaIncreible)
+
+Abre un Pull Request
+
+## 📄 Licencia
+Este proyecto está bajo la Licencia BSD-3 - mira el archivo LICENSE para más detalles.
+
+## 🤗 Expresiones de Gratitud
+Comparte este proyecto con otros desarrolladores 🗣📢
+
+Invítame una cerveza 🍺 o un café ☕
+
+Da una estrella ⭐ al repositorio si te ha sido útil.
+
+Made with ❤️ by macarthuror - @MacarthurOr - arturo.ortegaro@gmail.com
+
 [contributors-shield]: https://img.shields.io/github/contributors/open-mexico/go-mexpost.svg?style=flat-square
 [contributors-url]: https://github.com/open-mexico/go-mexpost/graphs/contributors
 [forks-shield]: https://img.shields.io/github/forks/open-mexico/go-mexpost.svg?style=flat-square
