@@ -1,41 +1,39 @@
-<!-- BEGIN MICROSOFT SECURITY.MD V0.0.8 BLOCK -->
+# Politica de Seguridad
 
-## Security
+Gracias por ayudar a mantener este proyecto seguro.
 
-Microsoft takes the security of our software products and services seriously, which includes all source code repositories managed through our GitHub organizations, which include [Microsoft](https://github.com/microsoft), [Azure](https://github.com/Azure), [DotNet](https://github.com/dotnet), [AspNet](https://github.com/aspnet), [Xamarin](https://github.com/xamarin), and [our GitHub organizations](https://opensource.microsoft.com/).
+## Versiones compatibles
 
-If you believe you have found a security vulnerability in any Microsoft-owned repository that meets [Microsoft's definition of a security vulnerability](https://aka.ms/opensource/security/definition), please report it to us as described below.
+Este repositorio se mantiene como una unica rama principal. Se ofrece soporte de seguridad para:
 
-## Reporting Security Issues
+- La ultima version publicada en la rama principal (`main`).
+- Dependencias declaradas en [go.mod](go.mod) dentro de versiones estables.
 
-**Please do not report security vulnerabilities through public GitHub issues.**
+No se garantiza soporte de seguridad para forks o versiones modificadas por terceros.
 
-Instead, please report them to the Microsoft Security Response Center (MSRC) at [https://msrc.microsoft.com/create-report](https://aka.ms/opensource/security/create-report).
+## Reportar una vulnerabilidad
 
-If you prefer to submit without logging in, send email to [secure@microsoft.com](mailto:secure@microsoft.com).  If possible, encrypt your message with our PGP key; please download it from the [Microsoft Security Response Center PGP Key page](https://aka.ms/opensource/security/pgpkey).
+Si encuentras una posible vulnerabilidad de seguridad, por favor **no abras un issue publico**.
 
-You should receive a response within 24 hours. If for some reason you do not, please follow up via email to ensure we received your original message. Additional information can be found at [microsoft.com/msrc](https://aka.ms/opensource/security/msrc). 
+Reportala de forma privada mediante:
 
-Please include the requested information listed below (as much as you can provide) to help us better understand the nature and scope of the possible issue:
+1. Correo: security@open-mexico.org
+2. Asunto sugerido: `[SECURITY] Reporte de vulnerabilidad en base-datos-postales`
+3. Incluye:
+	- Descripcion del problema
+	- Pasos para reproducirlo
+	- Impacto estimado
+	- Version/commit afectado
+	- Evidencia tecnica (logs, PoC, capturas)
 
-  * Type of issue (e.g. buffer overflow, SQL injection, cross-site scripting, etc.)
-  * Full paths of source file(s) related to the manifestation of the issue
-  * The location of the affected source code (tag/branch/commit or direct URL)
-  * Any special configuration required to reproduce the issue
-  * Step-by-step instructions to reproduce the issue
-  * Proof-of-concept or exploit code (if possible)
-  * Impact of the issue, including how an attacker might exploit the issue
+## Tiempos de respuesta
 
-This information will help us triage your report more quickly.
+- Confirmacion de recepcion: dentro de 72 horas.
+- Evaluacion inicial: dentro de 7 dias habiles.
+- Mitigacion o plan de remediacion: segun severidad e impacto.
 
-If you are reporting for a bug bounty, more complete reports can contribute to a higher bounty award. Please visit our [Microsoft Bug Bounty Program](https://aka.ms/opensource/security/bounty) page for more details about our active programs.
+## Divulgacion responsable
 
-## Preferred Languages
+Te pedimos evitar la divulgacion publica hasta que exista una correccion disponible o una mitigacion recomendada.
 
-We prefer all communications to be in English.
-
-## Policy
-
-Microsoft follows the principle of [Coordinated Vulnerability Disclosure](https://aka.ms/opensource/security/cvd).
-
-<!-- END MICROSOFT SECURITY.MD BLOCK -->
+Reconocemos y agradecemos los reportes responsables que ayuden a mejorar la seguridad del proyecto.
