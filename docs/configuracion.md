@@ -202,3 +202,23 @@ curl "http://localhost:8080/coordenadas?lat=19.4181&lon=-99.1634"
 # Con polígono GeoJSON
 curl "http://localhost:8080/coordenadas?lat=19.4181&lon=-99.1634&incluir_geo=true"
 ```
+
+## Compilar para diferentes Sistemas Operativos
+
+### Para Windows (Procesadores de 64 bits)
+
+```bash
+env GOOS=windows GOARCH=amd64 go build -o build/windows/go-mexpost-api.exe ./cmd/api/main.go
+```
+
+### Para Linux (Servidores y VPS)
+
+```bash
+env GOOS=linux GOARCH=amd64 go build -o build/linux/go-mexpost-api ./cmd/api/main.go
+```
+
+### Para Mac (Procesadores Apple Silicon M1/M2/M3)
+
+```bash
+env GOOS=darwin GOARCH=arm64 go build -o build/mac/go-mexpost-api ./cmd/api/main.go
+```
