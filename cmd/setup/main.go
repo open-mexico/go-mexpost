@@ -34,31 +34,35 @@ func main() {
 		fmt.Printf("❌ Error al extraer: %v\n", err)
 		return
 	}
-	os.Remove("temp.zip")
+	_ = os.Remove("temp.zip")
 	fmt.Println("✅ Base de datos lista en 'mapa.db'")
 }
 
-func descargarArchivo(url, destino string) error {
+func descargarArchivo(url, destino string) (err error) {
 	out, err := os.Create(destino)
 	if err != nil {
 		return err
 	}
-	defer out.Close()
-	resp, err := http.Get(url)
+	defer func() {
+		if cerr := out.Close(); cerr != nil && err == nil {
+			err = cerr
+		}
+	}()
+	resp, err := http.Get(url) //nolint:gosec,noctx
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	_, err = io.Copy(out, resp.Body)
 	return err
 }
 
-func extraerYRenombrar(rutaZip, destino string) error {
+func extraerYRenombrar(rutaZip, destino string) (err error) {
 	r, err := zip.OpenReader(rutaZip)
 	if err != nil {
 		return err
 	}
-	defer r.Close()
+	defer func() { _ = r.Close() }()
 
 	if len(r.File) == 0 {
 		return fmt.Errorf("zip vacío")
@@ -68,13 +72,17 @@ func extraerYRenombrar(rutaZip, destino string) error {
 	if err != nil {
 		return err
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	out, err := os.OpenFile(destino, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, r.File[0].Mode())
 	if err != nil {
 		return err
 	}
-	defer out.Close()
+	defer func() {
+		if cerr := out.Close(); cerr != nil && err == nil {
+			err = cerr
+		}
+	}()
 
 	_, err = io.Copy(out, f)
 	return err

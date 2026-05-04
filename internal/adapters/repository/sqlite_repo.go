@@ -76,7 +76,7 @@ func (r *sqliteRepo) SearchColonias(filter ports.ColoniaSearchFilter) ([]domain.
 	if err != nil {
 		return nil, err
 	}
-	defer filas.Close()
+	defer func() { _ = filas.Close() }()
 
 	var resultados []domain.Colonia
 	for filas.Next() {
@@ -174,7 +174,7 @@ func (r *sqliteRepo) SearchMunicipios(filter ports.MunicipioSearchFilter) ([]dom
 	if err != nil {
 		return nil, err
 	}
-	defer filas.Close()
+	defer func() { _ = filas.Close() }()
 
 	var resultados []domain.Municipio
 	for filas.Next() {
@@ -223,7 +223,7 @@ func (r *sqliteRepo) FindColoniasByPointBBox(filter ports.ReverseGeocodeFilter) 
 	if err != nil {
 		return nil, err
 	}
-	defer filas.Close()
+	defer func() { _ = filas.Close() }()
 
 	var resultados []domain.Colonia
 	for filas.Next() {
