@@ -2,6 +2,8 @@ package handler
 
 import (
 	"errors"
+	"fmt"
+	"math"
 	"net/http"
 	"strconv"
 
@@ -50,11 +52,49 @@ func (h *HttpHandler) BuscarColonias(c *gin.Context) {
 		return
 	}
 
+	limit, ok := parseIntQuery(c, "limit", 0)
+	if !ok {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "limit debe ser un número entero positivo"})
+		return
+	}
+
+	pagina, ok := parseIntQuery(c, "pagina", 1)
+	if !ok || pagina < 1 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "pagina debe ser un número entero mayor a 0"})
+		return
+	}
+
+	// Calcular límite y offset efectivos
+	maxLimit := ports.MaxLimit
+	defaultLimit := ports.DefaultLimit
+	if incluirGeo {
+		maxLimit = ports.MaxLimitGeo
+		defaultLimit = ports.DefaultLimitGeo
+	}
+	if limit <= 0 {
+		limit = defaultLimit
+	} else if limit > maxLimit {
+		limit = maxLimit
+	}
+	offset := (pagina - 1) * limit
+
 	filtro := ports.ColoniaSearchFilter{
 		CP:          c.Query("cp"),
 		Nombre:      c.Query("nombre"),
 		MunicipioID: c.Query("municipio_id"),
 		SoloGeo:     soloGeo,
+		Limit:       limit,
+		Offset:      offset,
+	}
+
+	total, err := h.service.ContarColonias(filtro)
+	if err != nil {
+		h.writeError(c, err)
+		return
+	}
+	if total == 0 {
+		h.writeError(c, domain.ErrNotFound)
+		return
 	}
 
 	colonias, err := h.service.BuscarColonias(filtro, incluirGeo)
@@ -68,7 +108,28 @@ func (h *HttpHandler) BuscarColonias(c *gin.Context) {
 		resp = append(resp, toColoniaResponse(col, incluirGeo))
 	}
 
-	c.JSON(http.StatusOK, gin.H{"resultados": resp})
+	totalPaginas := int(math.Ceil(float64(total) / float64(limit)))
+	baseURL := fmt.Sprintf("%s?%s", c.Request.URL.Path, buildQueryWithoutPagina(c))
+
+	var paginaAnterior, paginaSiguiente *string
+	if pagina > 1 {
+		s := fmt.Sprintf("%s&pagina=%d", baseURL, pagina-1)
+		paginaAnterior = &s
+	}
+	if pagina < totalPaginas {
+		s := fmt.Sprintf("%s&pagina=%d", baseURL, pagina+1)
+		paginaSiguiente = &s
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"resultados":       resp,
+		"total":            total,
+		"limit":            limit,
+		"pagina":           pagina,
+		"total_paginas":    totalPaginas,
+		"pagina_anterior":  paginaAnterior,
+		"pagina_siguiente": paginaSiguiente,
+	})
 }
 
 func (h *HttpHandler) BuscarMunicipios(c *gin.Context) {
@@ -134,16 +195,25 @@ func (h *HttpHandler) BuscarCoordenadas(c *gin.Context) {
 func (h *HttpHandler) writeError(c *gin.Context, err error) {
 	var ve domain.ValidationError
 	if errors.As(err, &ve) {
-		c.JSON(http.StatusBadRequest, gin.H{"error": ve.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   "parametros invalidos",
+			"detalle": ve.Error(),
+		})
 		return
 	}
 
 	if errors.Is(err, domain.ErrNotFound) {
-		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		c.JSON(http.StatusNotFound, gin.H{
+			"error":   err.Error(),
+			"detalle": "ajusta tus filtros e intenta de nuevo",
+		})
 		return
 	}
 
-	c.JSON(http.StatusInternalServerError, gin.H{"error": "error interno"})
+	c.JSON(http.StatusInternalServerError, gin.H{
+		"error":   "error interno",
+		"detalle": "ocurrio un error procesando la solicitud",
+	})
 }
 
 func parseBoolQuery(c *gin.Context, key string, defaultValue bool) (bool, bool) {
@@ -156,6 +226,26 @@ func parseBoolQuery(c *gin.Context, key string, defaultValue bool) (bool, bool) 
 		return false, false
 	}
 	return b, true
+}
+
+func parseIntQuery(c *gin.Context, key string, defaultValue int) (int, bool) {
+	v := c.Query(key)
+	if v == "" {
+		return defaultValue, true
+	}
+	n, err := strconv.Atoi(v)
+	if err != nil || n < 0 {
+		return 0, false
+	}
+	return n, true
+}
+
+// buildQueryWithoutPagina devuelve el query string actual sin el parámetro pagina,
+// para que las URLs de paginación puedan añadirlo de forma limpia.
+func buildQueryWithoutPagina(c *gin.Context) string {
+	q := c.Request.URL.Query()
+	q.Del("pagina")
+	return q.Encode()
 }
 
 func toColoniaResponse(col domain.Colonia, incluirGeo bool) coloniaResponse {

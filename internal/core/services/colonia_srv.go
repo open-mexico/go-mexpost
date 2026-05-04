@@ -24,6 +24,27 @@ func (s *coloniaService) BuscarColonias(filter ports.ColoniaSearchFilter, inclui
 		return nil, domain.ValidationError{Message: "debes proporcionar cp o nombre"}
 	}
 
+	if filter.CP != "" {
+		if len(filter.CP) < 3 || len(filter.CP) > 5 {
+			return nil, domain.ValidationError{Message: "cp invalido: usa entre 3 y 5 digitos (ej. 067 o 06700)"}
+		}
+		if !isOnlyDigits(filter.CP) {
+			return nil, domain.ValidationError{Message: "cp invalido: solo se permiten digitos"}
+		}
+	}
+
+	defaultLimit := ports.DefaultLimit
+	maxLimit := ports.MaxLimit
+	if incluirGeo {
+		defaultLimit = ports.DefaultLimitGeo
+		maxLimit = ports.MaxLimitGeo
+	}
+	if filter.Limit <= 0 {
+		filter.Limit = defaultLimit
+	} else if filter.Limit > maxLimit {
+		filter.Limit = maxLimit
+	}
+
 	resultados, err := s.repo.SearchColonias(filter)
 	if err != nil {
 		return nil, err
@@ -101,4 +122,33 @@ func (s *coloniaService) BuscarPorCoordenadas(filter ports.ReverseGeocodeFilter,
 	}
 
 	return nil, domain.ErrNotFound
+}
+
+func (s *coloniaService) ContarColonias(filter ports.ColoniaSearchFilter) (int, error) {
+	filter.CP = strings.TrimSpace(filter.CP)
+	filter.Nombre = strings.TrimSpace(filter.Nombre)
+	filter.MunicipioID = strings.TrimSpace(filter.MunicipioID)
+
+	if filter.CP == "" && filter.Nombre == "" {
+		return 0, domain.ValidationError{Message: "debes proporcionar cp o nombre"}
+	}
+	if filter.CP != "" {
+		if len(filter.CP) < 3 || len(filter.CP) > 5 {
+			return 0, domain.ValidationError{Message: "cp invalido: usa entre 3 y 5 digitos (ej. 067 o 06700)"}
+		}
+		if !isOnlyDigits(filter.CP) {
+			return 0, domain.ValidationError{Message: "cp invalido: solo se permiten digitos"}
+		}
+	}
+
+	return s.repo.CountColonias(filter)
+}
+
+func isOnlyDigits(value string) bool {
+	for _, ch := range value {
+		if ch < '0' || ch > '9' {
+			return false
+		}
+	}
+	return true
 }

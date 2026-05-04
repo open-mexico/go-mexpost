@@ -12,11 +12,13 @@ Busca colonias con múltiples combinaciones de filtros.
 
 | Parámetro | Tipo | Requerido | Descripción |
 |---|---|---|---|
-| `cp` | string | condicional* | Código postal exacto o prefijo (mínimo 3 chars para búsqueda parcial) |
+| `cp` | string | condicional* | Código postal, entre 3 y 5 dígitos (ej. `067`, `0671`, `06700`) |
 | `nombre` | string | condicional* | Nombre de colonia exacto o parcial (mínimo 3 chars, case-insensitive) |
 | `municipio_id` | string | no | Filtra por ID de municipio |
 | `incluir_geo` | bool | no (default: `false`) | Si es `true`, incluye el polígono GeoJSON y el centroide |
 | `solo_geo` | bool | no (default: `false`) | Si es `true`, devuelve solo colonias que tienen geometría registrada |
+| `limit` | int | no | Máximo de resultados a devolver (default: `100`, máx: `500`; con `incluir_geo=true` default: `50`, máx: `100`) |
+| `pagina` | int | no (default: `1`) | Número de página (empieza en `1`). Usa junto con `limit` para navegar resultados. |
 
 \* Al menos `cp` o `nombre` es obligatorio.
 
@@ -29,7 +31,7 @@ Busca colonias con múltiples combinaciones de filtros.
 | 3 | `?nombre=Roma` | Nombre parcial (case-insensitive) |
 | 4 | `?cp=067&nombre=Roma` | CP + nombre combinados |
 | 5 | `?nombre=Centro&municipio_id=014` | Nombre + municipio (resuelve duplicados) |
-| 6 | `?cp=067&municipio_id=014` | CP + municipio |
+| 6 | `?cp=067&municipio_id=015` | CP + municipio |
 | 7 | `?solo_geo=true&cp=067` | Solo colonias con polígono GeoJSON |
 | 8 | `?cp=067&incluir_geo=true` | Incluye geometría en la respuesta |
 
@@ -43,11 +45,17 @@ Busca colonias con múltiples combinaciones de filtros.
       "nombre": "Roma Norte",
       "tipo": "Colonia",
       "ciudad": "Ciudad de México",
-      "zona": "Urbana",
+      "zona": "Urbano",
       "estado_id": "09",
-      "municipio_id": "014"
+      "municipio_id": "015"
     }
-  ]
+  ],
+  "total": 42,
+  "limit": 10,
+  "pagina": 1,
+  "total_paginas": 5,
+  "pagina_anterior": null,
+  "pagina_siguiente": "/colonias?cp=067&limit=10&pagina=2"
 }
 ```
 
@@ -61,9 +69,9 @@ Con `incluir_geo=true`:
       "nombre": "Roma Norte",
       "tipo": "Colonia",
       "ciudad": "Ciudad de México",
-      "zona": "Urbana",
+      "zona": "Urbano",
       "estado_id": "09",
-      "municipio_id": "014",
+      "municipio_id": "015",
       "geometria": "{\"type\":\"Polygon\",\"coordinates\":[...]}",
       "centro_lon": -99.1634,
       "centro_lat": 19.4181
@@ -76,10 +84,14 @@ Con `incluir_geo=true`:
 
 | Código | Causa | Ejemplo |
 |---|---|---|
-| `400 Bad Request` | Falta `cp` y `nombre` | `{"error": "debes proporcionar cp o nombre"}` |
+| `400 Bad Request` | Falta `cp` y `nombre` | `{"error": "parametros invalidos", "detalle": "debes proporcionar cp o nombre"}` |
+| `400 Bad Request` | `cp` con menos de 3 o más de 5 caracteres | `{"error": "parametros invalidos", "detalle": "cp invalido: usa entre 3 y 5 digitos (ej. 067 o 06700)"}` |
+| `400 Bad Request` | `cp` contiene caracteres no numéricos | `{"error": "parametros invalidos", "detalle": "cp invalido: solo se permiten digitos"}` |
 | `400 Bad Request` | Valor inválido en `incluir_geo` o `solo_geo` | `{"error": "incluir_geo debe ser true o false"}` |
-| `404 Not Found` | Ninguna colonia coincide con los filtros | `{"error": "no se encontraron resultados"}` |
-| `500 Internal Server Error` | Error inesperado de base de datos | `{"error": "error interno"}` |
+| `400 Bad Request` | Valor inválido en `limit` | `{"error": "limit debe ser un número entero positivo"}` |
+| `400 Bad Request` | `pagina` con valor menor a 1 o no numérico | `{"error": "parametros invalidos", "detalle": "pagina debe ser un número entero mayor a 0"}` |
+| `404 Not Found` | Ninguna colonia coincide con los filtros | `{"error": "no se encontraron resultados", "detalle": "ajusta tus filtros e intenta de nuevo"}` |
+| `500 Internal Server Error` | Error inesperado de base de datos | `{"error": "error interno", "detalle": "ocurrio un error procesando la solicitud"}` |
 
 ---
 
@@ -157,9 +169,9 @@ GET /coordenadas?lat=19.4181&lon=-99.1634&incluir_geo=true
     "nombre": "Roma Norte",
     "tipo": "Colonia",
     "ciudad": "Ciudad de México",
-    "zona": "Urbana",
+    "zona": "Urbano",
     "estado_id": "09",
-    "municipio_id": "014"
+    "municipio_id": "015"
   }
 }
 ```
@@ -173,9 +185,9 @@ Con `incluir_geo=true`:
     "nombre": "Roma Norte",
     "tipo": "Colonia",
     "ciudad": "Ciudad de México",
-    "zona": "Urbana",
+    "zona": "Urbano",
     "estado_id": "09",
-    "municipio_id": "014",
+    "municipio_id": "015",
     "geometria": "{\"type\":\"Polygon\",\"coordinates\":[...]}",
     "centro_lon": -99.1634,
     "centro_lat": 19.4181

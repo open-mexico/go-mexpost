@@ -28,6 +28,14 @@ func (m *MockService) BuscarColonias(filter ports.ColoniaSearchFilter, incluirGe
 	return m.Colonias, nil
 }
 
+func (m *MockService) ContarColonias(filter ports.ColoniaSearchFilter) (int, error) {
+	_ = filter
+	if m.Err != nil {
+		return 0, m.Err
+	}
+	return len(m.Colonias), nil
+}
+
 func (m *MockService) BuscarMunicipios(filter ports.MunicipioSearchFilter) ([]domain.Municipio, error) {
 	_ = filter
 	if m.Err != nil {
@@ -62,7 +70,26 @@ func TestBuscarColonias_Status400(t *testing.T) {
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusBadRequest, w.Code)
+	assert.Contains(t, w.Body.String(), "parametros invalidos")
 	assert.Contains(t, w.Body.String(), "debes proporcionar cp o nombre")
+}
+
+func TestBuscarColonias_Status400CPInvalido(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	mockService := &MockService{Err: domain.ValidationError{Message: "cp invalido: usa entre 3 y 5 digitos (ej. 067 o 06700)"}}
+	manejador := handler.NewHttpHandler(mockService)
+
+	router := gin.New()
+	router.GET("/colonias", manejador.BuscarColonias)
+
+	req, _ := http.NewRequest("GET", "/colonias?cp=14", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+	assert.Contains(t, w.Body.String(), "parametros invalidos")
+	assert.Contains(t, w.Body.String(), "cp invalido")
 }
 
 func TestBuscarColonias_Status200SinGeo(t *testing.T) {
@@ -81,6 +108,46 @@ func TestBuscarColonias_Status200SinGeo(t *testing.T) {
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Contains(t, w.Body.String(), "\"codigo\":\"06700\"")
 	assert.NotContains(t, w.Body.String(), "geometria")
+	assert.Contains(t, w.Body.String(), "\"total\"")
+	assert.Contains(t, w.Body.String(), "\"pagina\"")
+	assert.Contains(t, w.Body.String(), "\"total_paginas\"")
+	assert.Contains(t, w.Body.String(), "\"pagina_anterior\"")
+	assert.Contains(t, w.Body.String(), "\"pagina_siguiente\"")
+}
+
+func TestBuscarColonias_PaginacionMetadata(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	items := make([]domain.Colonia, 5)
+	for i := range items {
+		items[i] = domain.Colonia{Codigo: "06700", Nombre: "Roma"}
+	}
+	mockService := &MockService{Colonias: items}
+	manejador := handler.NewHttpHandler(mockService)
+	router := gin.New()
+	router.GET("/colonias", manejador.BuscarColonias)
+
+	// Pagina 1 de 3 con limit=2, total=5 → pagina_siguiente existe, pagina_anterior nil
+	req, _ := http.NewRequest("GET", "/colonias?cp=067&limit=2&pagina=1", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+	assert.Equal(t, http.StatusOK, w.Code)
+	body := w.Body.String()
+	assert.Contains(t, body, "\"pagina\":1")
+	assert.Contains(t, body, "\"total_paginas\":3")
+	assert.Contains(t, body, "pagina_siguiente")
+	assert.Contains(t, body, "\"pagina_anterior\":null")
+}
+
+func TestBuscarColonias_Status400LimitInvalido(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	manejador := handler.NewHttpHandler(&MockService{})
+	router := gin.New()
+	router.GET("/colonias", manejador.BuscarColonias)
+	req, _ := http.NewRequest("GET", "/colonias?cp=067&limit=abc", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+	assert.Contains(t, w.Body.String(), "limit debe ser un número entero positivo")
 }
 
 func TestBuscarMunicipios_Status404(t *testing.T) {
@@ -97,6 +164,7 @@ func TestBuscarMunicipios_Status404(t *testing.T) {
 
 	assert.Equal(t, http.StatusNotFound, w.Code)
 	assert.Contains(t, w.Body.String(), "no se encontraron resultados")
+	assert.Contains(t, w.Body.String(), "ajusta tus filtros")
 }
 
 func TestBuscarCoordenadas_Status400PorParametros(t *testing.T) {
@@ -148,4 +216,5 @@ func TestBuscarColonias_Status500(t *testing.T) {
 
 	assert.Equal(t, http.StatusInternalServerError, w.Code)
 	assert.Contains(t, w.Body.String(), "error interno")
+	assert.Contains(t, w.Body.String(), "ocurrio un error procesando la solicitud")
 }

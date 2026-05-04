@@ -28,6 +28,14 @@ func (m *MockRepo) SearchColonias(filter ports.ColoniaSearchFilter) ([]domain.Co
 	return m.Colonias, nil
 }
 
+func (m *MockRepo) CountColonias(filter ports.ColoniaSearchFilter) (int, error) {
+	_ = filter
+	if m.Err != nil {
+		return 0, m.Err
+	}
+	return len(m.Colonias), nil
+}
+
 func (m *MockRepo) SearchMunicipios(filter ports.MunicipioSearchFilter) ([]domain.Municipio, error) {
 	if m.Err != nil {
 		return nil, m.Err
@@ -51,6 +59,24 @@ func TestBuscarColonias_ErroresDeValidacion(t *testing.T) {
 	_, err := servicio.BuscarColonias(ports.ColoniaSearchFilter{}, false)
 	assert.Error(t, err)
 	assert.Equal(t, "debes proporcionar cp o nombre", err.Error())
+}
+
+func TestBuscarColonias_CPInvalidoPorLongitud(t *testing.T) {
+	repo := &MockRepo{}
+	servicio := services.NewColoniaService(repo)
+
+	_, err := servicio.BuscarColonias(ports.ColoniaSearchFilter{CP: "14"}, false)
+	assert.Error(t, err)
+	assert.Equal(t, "cp invalido: usa entre 3 y 5 digitos (ej. 067 o 06700)", err.Error())
+}
+
+func TestBuscarColonias_CPInvalidoConLetras(t *testing.T) {
+	repo := &MockRepo{}
+	servicio := services.NewColoniaService(repo)
+
+	_, err := servicio.BuscarColonias(ports.ColoniaSearchFilter{CP: "06A"}, false)
+	assert.Error(t, err)
+	assert.Equal(t, "cp invalido: solo se permiten digitos", err.Error())
 }
 
 func TestBuscarColonias_ExitoSinGeo(t *testing.T) {
