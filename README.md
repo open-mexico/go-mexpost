@@ -44,11 +44,14 @@ Proveer una API REST robusta, eficiente y de nivel empresarial para desarrollado
 
 * ⚡ **Rendimiento Extremo:** Gracias a Go y Gin-Gonic, las respuestas se sirven en milisegundos.
 * 📦 **Base de Datos Embebida (SQLite):** No requiere instalar MySQL ni PostgreSQL. Descarga la base de datos lista para usar y arranca el servidor.
-* 🔎 **Búsquedas Flexibles y Optimizadas:** * Por Código Postal exacto o parcial (ej. `067%`).
+* 🔎 **Búsquedas Flexibles y Optimizadas:**
+  * Por Código Postal exacto o parcial (ej. `067%`).
   * Por Nombre de Colonia exacto o parcial (ignorando mayúsculas y minúsculas).
   * Filtros combinados por Estado y Municipio.
+* 📄 **Paginación completa:** Todos los resultados de `/colonias` incluyen `pagina`, `total_paginas`, `pagina_anterior` y `pagina_siguiente` para navegar grandes conjuntos de datos.
+* 🛡️ **Rate Limiting por IP:** Protección integrada contra abuso mediante token bucket. Configurable con variables de entorno (`RATE_LIMIT`, `RATE_BURST`) sin recompilar.
 * 🗺️ **Soporte Geoespacial (GeoJSON):** Capacidad de descargar una versión espacial de la base de datos que incluye los polígonos de cada código postal.
-* 📍 **Geocodificación (Próximamente):** Búsqueda de colonias mediante coordenadas (Point-in-Polygon) y obtención de centroides geográficos.
+* 📍 **Geocodificación Inversa:** Búsqueda de colonias mediante coordenadas (Point-in-Polygon) y obtención de centroides geográficos.
 * 🏗️ **Arquitectura Hexagonal:** Código desacoplado, testeable y preparado para escalar.
 
 ## 🚀 Instalación y Uso
@@ -89,6 +92,19 @@ go run ./cmd/api/main.go
 
 La API estará corriendo en http://localhost:8080.
 
+### 5. Variables de entorno (opcionales)
+
+| Variable | Default | Descripción |
+|---|---|---|
+| `PORT` | `8080` | Puerto en el que escucha el servidor |
+| `RATE_LIMIT` | `10` | Solicitudes por segundo permitidas por IP |
+| `RATE_BURST` | `30` | Ráfaga máxima instantánea por IP |
+
+```bash
+# Ejemplo con configuración personalizada
+PORT=3000 RATE_LIMIT=5 RATE_BURST=15 go run ./cmd/api/main.go
+```
+
 🛠️ Herramientas y Tecnologías
 `Golang` (1.26+): Lenguaje principal.
 
@@ -97,6 +113,8 @@ Gin-Gonic: Framework web HTTP de alto rendimiento.
 SQLite (modernc.org): Driver de base de datos embebida 100% en Go (CGO-free).
 
 Testify: Herramientas para pruebas unitarias (Mocks y Asserts).
+
+golang.org/x/time/rate: Token bucket para rate limiting por IP.
 
 ## 📊 Fuente de Datos
 La información es extraída, limpiada y optimizada desde las fuentes oficiales del Servicio Postal Mexicano (SEPOMEX/Correos de México) y cruzada con límites espaciales de Open Mexico GeoJSON.

@@ -109,13 +109,15 @@ servicio := services.NewColoniaService(repo)
 // 3. Handler — recibe el servicio como interfaz
 apiHandler := handler.NewHttpHandler(servicio)
 
-// 4. Router Gin — registra los endpoints
+// 4. Router Gin — registra middlewares y endpoints
 router := gin.Default()
+router.SetTrustedProxies(nil)
+router.Use(handler.RateLimitMiddleware(rateLimit, rateBurst)) // token bucket por IP
 router.GET("/colonias",    apiHandler.BuscarColonias)
 router.GET("/municipios",  apiHandler.BuscarMunicipios)
 router.GET("/coordenadas", apiHandler.BuscarCoordenadas)
 
-router.Run(":8080")
+router.Run(":" + port)
 ```
 
 Las dependencias se inyectan como **interfaces**, no como implementaciones concretas. Esto significa que se puede reemplazar SQLite por otra base de datos implementando `ports.ColoniaRepository` sin tocar el servicio ni los handlers.
@@ -152,9 +154,19 @@ golangci-lint run
 
 ## Variables de entorno
 
-Actualmente el servidor no requiere configuración por variables de entorno. La ruta de la base de datos está hardcodeada como `./mapa.db` (relativa al directorio de trabajo).
+| Variable | Default | Descripción |
+|---|---|---|
+| `PORT` | `8080` | Puerto TCP en el que escucha el servidor |
+| `RATE_LIMIT` | `10` | Máximo de solicitudes por segundo por IP (token bucket) |
+| `RATE_BURST` | `30` | Ráfaga máxima instantánea permitida por IP |
 
-Para personalizar la ruta en un futuro, el punto de extensión natural sería leer la ruta desde `os.Getenv("DB_PATH")` en `cmd/api/main.go` antes de llamar a `NewSQLiteRepository`.
+Ejemplo de uso:
+
+```bash
+PORT=3000 RATE_LIMIT=5 RATE_BURST=15 go run ./cmd/api/main.go
+```
+
+Si las variables `RATE_LIMIT` o `RATE_BURST` contienen un valor inválido o cero, el servidor usa los valores por defecto silenciosamente.
 
 ---
 
@@ -164,7 +176,8 @@ Para personalizar la ruta en un futuro, el punto de extensión natural sería le
 github.com/open-mexico/go-mexpost
 ├── github.com/gin-gonic/gin v1.12.0       ← HTTP framework
 ├── modernc.org/sqlite v1.50.0             ← SQLite sin CGO
-└── github.com/stretchr/testify v1.11.1   ← Testing
+├── github.com/stretchr/testify v1.11.1   ← Testing
+└── golang.org/x/time v0.15.0             ← Rate limiting (token bucket)
 ```
 
 ---
@@ -176,6 +189,9 @@ Una vez iniciado el servidor, puedes verificar que todo funciona con estas petic
 ```bash
 # Buscar colonias por CP
 curl "http://localhost:8080/colonias?cp=06700"
+
+# Buscar con paginación
+curl "http://localhost:8080/colonias?nombre=san&limit=10&pagina=2"
 
 # Buscar municipios por estado
 curl "http://localhost:8080/municipios?estado_id=09"

@@ -52,6 +52,7 @@ go-mexpost/
 │   └── adapters/
 │       ├── handler/
 │       │   ├── http_handler.go    ← Endpoints Gin: /colonias /municipios /coordenadas
+│       │   ├── ratelimit.go       ← Middleware de rate limiting por IP (token bucket)
 │       │   └── http_handler_test.go
 │       └── repository/
 │           └── sqlite_repo.go     ← Queries SQL dinámicas contra mapa.db
@@ -89,10 +90,12 @@ Define los **contratos** (interfaces de Go) que separan el núcleo de las implem
 ```go
 // Para GET /colonias
 type ColoniaSearchFilter struct {
-    CP          string  // Código postal (prefijo o exacto)
+    CP          string  // Código postal (prefijo o exacto, 3-5 dígitos)
     Nombre      string  // Nombre de colonia (parcial o exacto)
     MunicipioID string  // Filtro adicional por municipio
     SoloGeo     bool    // true → solo colonias con geometría
+    Limit       int     // Máximo de resultados (default 100, máx 500)
+    Offset      int     // Desplazamiento para paginación
 }
 
 // Para GET /municipios
@@ -114,6 +117,7 @@ type ReverseGeocodeFilter struct {
 ```go
 type ColoniaRepository interface {
     SearchColonias(filter ColoniaSearchFilter) ([]domain.Colonia, error)
+    CountColonias(filter ColoniaSearchFilter) (int, error)
     SearchMunicipios(filter MunicipioSearchFilter) ([]domain.Municipio, error)
     FindColoniasByPointBBox(filter ReverseGeocodeFilter) ([]domain.Colonia, error)
 }
@@ -124,6 +128,7 @@ type ColoniaRepository interface {
 ```go
 type ColoniaService interface {
     BuscarColonias(filter ColoniaSearchFilter, incluirGeo bool) ([]domain.Colonia, error)
+    ContarColonias(filter ColoniaSearchFilter) (int, error)
     BuscarMunicipios(filter MunicipioSearchFilter) ([]domain.Municipio, error)
     BuscarPorCoordenadas(filter ReverseGeocodeFilter, incluirGeo bool) (*domain.Colonia, error)
 }
@@ -138,9 +143,16 @@ Implementan los **casos de uso** del sistema. Contienen toda la lógica de negoc
 #### `BuscarColonias`
 1. Sanitiza los strings de entrada (trim de espacios).
 2. Valida que se proporcione al menos `cp` o `nombre` → `ValidationError` si no.
-3. Llama a `repo.SearchColonias(filter)`.
-4. Si no hay resultados → `ErrNotFound`.
-5. Si `incluirGeo = false`, pone a `nil` los campos `Geometria`, `CentroLon`, `CentroLat` antes de devolver.
+3. Valida que `cp` tenga entre 3 y 5 dígitos y que sean solo dígitos → `ValidationError` si no cumple.
+4. Aplica límites de `Limit`/`Offset` según el modo (`incluirGeo` o no): default 100/50, máx 500/100.
+5. Llama a `repo.SearchColonias(filter)` con `LIMIT` y `OFFSET`.
+6. Si no hay resultados → `ErrNotFound`.
+7. Si `incluirGeo = false`, pone a `nil` los campos `Geometria`, `CentroLon`, `CentroLat` antes de devolver.
+
+#### `ContarColonias`
+1. Sanitiza y valida el filtro igual que `BuscarColonias`.
+2. Llama a `repo.CountColonias(filter)` (sin LIMIT/OFFSET) para obtener el total real.
+3. El handler usa este total para calcular `total_paginas` y construir las URLs de navegación.
 
 #### `BuscarMunicipios`
 1. Sanitiza `nombre` y `estado_id`.
@@ -172,6 +184,14 @@ Implementa los endpoints con Gin-Gonic. Sus responsabilidades son:
 - Parsear y validar parámetros de query string.
 - Traducir errores del servicio a códigos HTTP.
 - Dar forma al JSON de respuesta (incluyendo u omitiendo geometría).
+- Construir la metadata de paginación (`pagina`, `total_paginas`, `pagina_anterior`, `pagina_siguiente`).
+
+El middleware de rate limiting (`ratelimit.go`) se registra globalmente en el router y es ajeno al handler de negocio:
+
+```go
+// Token bucket: rateLimit req/s sostenidos, burst de rateBurst por IP.
+router.Use(handler.RateLimitMiddleware(rateLimit, rateBurst))
+```
 
 Ver [endpoints.md](endpoints.md) para la referencia completa de la API.
 
@@ -220,6 +240,7 @@ Cliente HTTP ← {"resultados": [...]}
 
 | Error en servicio | Código HTTP | Cuerpo |
 |---|---|---|
-| `domain.ValidationError` | `400 Bad Request` | `{"error": "<mensaje>"}` |
-| `domain.ErrNotFound` | `404 Not Found` | `{"error": "no se encontraron resultados"}` |
-| Cualquier otro error | `500 Internal Server Error` | `{"error": "error interno"}` |
+| `domain.ValidationError` | `400 Bad Request` | `{"error": "parametros invalidos", "detalle": "<mensaje>"}` |
+| `domain.ErrNotFound` | `404 Not Found` | `{"error": "no se encontraron resultados", "detalle": "ajusta tus filtros e intenta de nuevo"}` |
+| Cualquier otro error | `500 Internal Server Error` | `{"error": "error interno", "detalle": "ocurrio un error procesando la solicitud"}` |
+| Rate limit excedido | `429 Too Many Requests` | `{"error": "demasiadas solicitudes", "detalle": "excediste el límite de solicitudes, intenta de nuevo en unos segundos"}` |

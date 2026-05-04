@@ -49,6 +49,12 @@ type MockRepo struct {
     LastColoniaFilter ports.ColoniaSearchFilter   // captura el último filtro recibido
     LastGeoFilter     ports.ReverseGeocodeFilter
 }
+
+func (m *MockRepo) SearchColonias(filter ports.ColoniaSearchFilter) ([]domain.Colonia, error) { ... }
+func (m *MockRepo) CountColonias(filter ports.ColoniaSearchFilter) (int, error) {
+    if m.Err != nil { return 0, m.Err }
+    return len(m.Colonias), nil
+}
 ```
 
 El campo `Last*Filter` permite verificar que el servicio construyó y propagó correctamente el filtro hacia el repositorio.
@@ -58,6 +64,8 @@ El campo `Last*Filter` permite verificar que el servicio construyó y propagó c
 | Test | Verifica |
 |---|---|
 | `TestBuscarColonias_ErroresDeValidacion` | `ValidationError` cuando falta `cp` y `nombre` |
+| `TestBuscarColonias_CPInvalidoPorLongitud` | `ValidationError` cuando `cp` tiene menos de 3 dígitos |
+| `TestBuscarColonias_CPInvalidoConLetras` | `ValidationError` cuando `cp` contiene letras |
 | `TestBuscarColonias_ExitoSinGeo` | Resultado correcto y que `Geometria=nil` cuando `incluirGeo=false` |
 | `TestBuscarColonias_RepoError` | Propagación de errores del repositorio |
 | `TestBuscarMunicipios_NotFound` | `ErrNotFound` cuando el repo devuelve lista vacía |
@@ -151,6 +159,12 @@ type MockService struct {
     Colonias  []domain.Colonia
     Municipio []domain.Municipio
 }
+
+func (m *MockService) BuscarColonias(...) ([]domain.Colonia, error) { ... }
+func (m *MockService) ContarColonias(filter ports.ColoniaSearchFilter) (int, error) {
+    if m.Err != nil { return 0, m.Err }
+    return len(m.Colonias), nil
+}
 ```
 
 ### Patrón de prueba
@@ -173,9 +187,12 @@ assert.Contains(t, w.Body.String(), `"codigo":"06700"`)
 | Test | Endpoint | Escenario | Código esperado |
 |---|---|---|---|
 | `TestBuscarColonias_Status400` | `GET /colonias` | `MockService` devuelve `ValidationError` | 400 |
-| `TestBuscarColonias_Status200SinGeo` | `GET /colonias?cp=067` | Éxito sin `incluir_geo` | 200, sin campo `geometria` |
+| `TestBuscarColonias_Status400CPInvalido` | `GET /colonias?cp=14` | CP muy corto | 400, `"cp invalido"` |
+| `TestBuscarColonias_Status400LimitInvalido` | `GET /colonias?cp=067&limit=abc` | `limit` no numérico | 400, `"limit debe ser..."` |
+| `TestBuscarColonias_Status200SinGeo` | `GET /colonias?cp=067` | Éxito, sin `incluir_geo` | 200, `pagina`, `total_paginas` presentes |
+| `TestBuscarColonias_PaginacionMetadata` | `GET /colonias?cp=067&limit=2&pagina=1` | 5 resultados, página 1 de 3 | 200, `pagina_siguiente` presente, `pagina_anterior` null |
 | `TestBuscarColonias_Status500` | `GET /colonias?cp=067` | `MockService` devuelve error genérico | 500 |
-| `TestBuscarMunicipios_Status404` | `GET /municipios?estado_id=09` | `MockService` devuelve `ErrNotFound` | 404 |
+| `TestBuscarMunicipios_Status404` | `GET /municipios?estado_id=09` | `MockService` devuelve `ErrNotFound` | 404, `"ajusta tus filtros"` |
 | `TestBuscarCoordenadas_Status400PorParametros` | `GET /coordenadas?lat=19.4` | Falta el parámetro `lon` | 400 |
 | `TestBuscarCoordenadas_Status200ConGeo` | `GET /coordenadas?lat=19.4&lon=-99.1&incluir_geo=true` | Éxito con geometría | 200, con campos `geometria` y `centro_lon` |
 
@@ -215,6 +232,6 @@ Esto garantiza que cada capa se prueba de forma aislada. Si el repositorio SQLit
 
 | Paquete | Tests existentes | Escenarios cubiertos |
 |---|---|---|
-| `internal/core/services` | 7 tests | Validación, éxito, no encontrado, error repo, Ray-Casting |
+| `internal/core/services` | 9 tests | Validación (vacío, CP corto, CP con letras), éxito, no encontrado, error repo, Ray-Casting |
 | `internal/core/services` (geo) | 3 tests | Dentro, fuera, borde |
-| `internal/adapters/handler` | 6 tests | 200, 400, 404, 500 para los 3 endpoints |
+| `internal/adapters/handler` | 9 tests | 200 con paginación, 400 (sin filtros, CP inválido, limit inválido), 404, 500 para los 3 endpoints |
