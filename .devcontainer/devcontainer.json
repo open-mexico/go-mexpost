@@ -6,7 +6,12 @@
   "image": "mcr.microsoft.com/devcontainers/go:2-1.26-bookworm",
 
   // Features to add to the dev container. More info: https://containers.dev/features.
-  // "features": {},
+  "features": {
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "lts",
+      "pnpmVersion": "latest"
+    }
+  },
 
   // Configure tool-specific properties.
   "customizations": {
@@ -27,7 +32,7 @@
       "label": "Hello Remote World",
       "onAutoForward": "notify"
     }
-  }
+  },
 
   // Use 'postCreateCommand' to run commands after the container is created.
   // "postCreateCommand": "go version",
