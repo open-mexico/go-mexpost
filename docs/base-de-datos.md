@@ -110,7 +110,7 @@ La base de datos cuenta con **15 índices** optimizados para las consultas más 
 
 ## Queries dinámicas del repositorio
 
-El repositorio en [sqlite_repo.go](../internal/adapters/repository/sqlite_repo.go) construye queries de forma dinámica con parámetros posicionales para prevenir SQL injection.
+El repositorio en `internal/adapters/repository/sqlite_repo.go` construye queries de forma dinámica con parámetros posicionales para prevenir SQL injection.
 
 ### `SearchColonias` — combinaciones de filtros
 
@@ -148,44 +148,4 @@ SELECT id, nombre, estado_id FROM municipios WHERE nombre LIKE '%zapopan%' COLLA
 
 -- Por estado
 SELECT id, nombre, estado_id FROM municipios WHERE estado_id = '14' ORDER BY nombre
-
--- Nombre + estado
-SELECT id, nombre, estado_id FROM municipios
-  WHERE nombre LIKE '%centro%' COLLATE NOCASE AND estado_id = '09'
-  ORDER BY nombre
 ```
-
-### `FindColoniasByPointBBox` — prefiltrado para geocodificación inversa
-
-```sql
-SELECT codigo, nombre, ..., geometria, ...
-FROM colonias
-WHERE min_lat <= 19.4181
-  AND max_lat >= 19.4181
-  AND min_lon <= -99.1634
-  AND max_lon >= -99.1634
-  AND estado_id = '09'          -- opcional
-  AND geometria IS NOT NULL AND TRIM(geometria) <> ''
-ORDER BY codigo, nombre
-```
-
----
-
-## Configuración de la conexión
-
-```go
-db, err := sql.Open("sqlite", "./mapa.db")
-```
-
-SQLite es una base de datos de archivo único. La ruta `./mapa.db` es relativa al directorio de trabajo del proceso (normalmente la raíz del proyecto). En producción se puede ajustar con una variable de entorno.
-
----
-
-## Versiones de la base de datos
-
-| Versión | URL | Contenido |
-|---|---|---|
-| `v1.1.0` (postal) | `db_postal.sqlite.zip` | Solo datos textuales (sin GeoJSON). Más ligera. |
-| `v1.1.0` (geo) | `db_geo.sqlite.zip` | Datos textuales + polígonos GeoJSON. Necesaria para `/coordenadas`. |
-
-> La versión geo es necesaria para usar el endpoint `/coordenadas`. Sin polígonos, la geocodificación inversa no tiene candidatos y siempre devuelve 404.

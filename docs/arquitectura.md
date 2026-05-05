@@ -173,7 +173,7 @@ Implementan los **casos de uso** del sistema. Contienen toda la lógica de negoc
 
 Implementa `ColoniaRepository` usando SQLite. Construye queries dinámicas de forma segura con parámetros posicionales (`?`) para evitar SQL injection.
 
-Ver [base-de-datos.md](base-de-datos.md) para el detalle de las queries y el esquema.
+Ver [base-de-datos](./base-de-datos) para el detalle de las queries y el esquema.
 
 ---
 
@@ -193,7 +193,7 @@ El middleware de rate limiting (`ratelimit.go`) se registra globalmente en el ro
 router.Use(handler.RateLimitMiddleware(rateLimit, rateBurst))
 ```
 
-Ver [endpoints.md](endpoints.md) para la referencia completa de la API.
+Ver [endpoints](./endpoints) para la referencia completa de la API.
 
 ---
 

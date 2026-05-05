@@ -221,6 +221,6 @@ Para búsquedas de texto (`cp`, `nombre`), la lógica es:
 
 El campo `geometria` contiene un GeoJSON válido en texto. Se omite del JSON de respuesta por defecto para reducir el tamaño de las respuestas. Solo se incluye cuando el cliente envía `incluir_geo=true`.
 
-### El campo `centro_lon` / `centro_lat`
+### Los campos `centro_lon` / `centro_lat`
 
 Representan el centroide geográfico de la colonia, útil para centrar un mapa. Igual que `geometria`, solo se incluyen cuando `incluir_geo=true`.
