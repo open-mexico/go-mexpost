@@ -30,6 +30,7 @@
   },
   "homepage": "https://github.com/open-mexico/go-mexpost",
   "devDependencies": {
+    "@types/node": "^25.6.0",
     "vitepress": "2.0.0-alpha.17"
   }
 }
