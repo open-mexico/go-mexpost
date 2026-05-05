@@ -344,3 +344,6 @@ ASALocalRun/
 out
 pkg
 debug
+
+# Package
+.pnpm-store/
