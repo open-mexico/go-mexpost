@@ -2,6 +2,10 @@
   "name": "go-mexpost",
   "version": "1.0.0",
   "description": "Microservicio de colonias, códigos postales, municipios, Coordenadas y Geojson.",
+  "engines": {
+    "node": ">=20 <21",
+    "pnpm": ">=9 <10"
+  },
   "scripts": {
     "docs:dev": "vitepress dev docs",
     "docs:build": "vitepress build docs",
@@ -29,6 +33,7 @@
     "url": "https://github.com/open-mexico/go-mexpost/issues"
   },
   "homepage": "https://github.com/open-mexico/go-mexpost",
+  "packageManager": "pnpm@9.0.0",
   "devDependencies": {
     "@types/node": "^25.6.0",
     "vitepress": "2.0.0-alpha.17"
