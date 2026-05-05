@@ -65,6 +65,24 @@ go run ./cmd/api/main.go
 # → http://localhost:8080
 ```
 
+## Convención de commits
+
+Usamos preferentemente **[Gitmoji](https://gitmoji.dev)** para los mensajes de commit. Agrega el emoji que corresponda al tipo de cambio:
+
+| Emoji | Tipo                  |
+| ----- | --------------------- |
+| ✨    | Nueva función         |
+| 🐛    | Corrección de bug     |
+| 📝    | Documentación         |
+| ♻️    | Refactor              |
+| ⚡️    | Mejora de rendimiento |
+| 🔧    | Configuración         |
+| ✅    | Tests                 |
+
+```bash
+git commit -m '✨ Añadir endpoint de municipios'
+```
+
 ## Ejemplos rápidos
 
 ```

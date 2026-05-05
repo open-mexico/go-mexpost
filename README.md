@@ -26,9 +26,9 @@
 
 ## 🔑 Abstract (English)
 
-**Go-MexPost** is a blazing-fast, open-source microservice built in Golang, designed to simplify access to postal and geographic data in Mexico. Formerly built on Node.js, this project was completely rewritten from scratch using a strict **Hexagonal Architecture** and an embedded SQLite database to achieve extreme performance, high concurrency, and minimal memory footprint. 
+**Go-MexPost** is a blazing-fast, open-source microservice built in Golang, designed to simplify access to postal and geographic data in Mexico. Formerly built on Node.js, this project was completely rewritten from scratch using a strict **Hexagonal Architecture** and an embedded SQLite database to achieve extreme performance, high concurrency, and minimal memory footprint.
 
-The data generation process has been decoupled into an external ETL pipeline, making this API fully agnostic and effortlessly maintainable. Users can search by postal code, partial names, or perform reverse geocoding to find neighborhoods based on geographic coordinates using GeoJSON polygons. 
+The data generation process has been decoupled into an external ETL pipeline, making this API fully agnostic and effortlessly maintainable. Users can search by postal code, partial names, or perform reverse geocoding to find neighborhoods based on geographic coordinates using GeoJSON polygons.
 
 ## 📍 Descripción
 
@@ -42,17 +42,17 @@ Proveer una API REST robusta, eficiente y de nivel empresarial para desarrollado
 
 ## 🔍 Características
 
-* ⚡ **Rendimiento Extremo:** Gracias a Go y Gin-Gonic, las respuestas se sirven en milisegundos.
-* 📦 **Base de Datos Embebida (SQLite):** No requiere instalar MySQL ni PostgreSQL. Descarga la base de datos lista para usar y arranca el servidor.
-* 🔎 **Búsquedas Flexibles y Optimizadas:**
-  * Por Código Postal exacto o parcial (ej. `067%`).
-  * Por Nombre de Colonia exacto o parcial (ignorando mayúsculas y minúsculas).
-  * Filtros combinados por Estado y Municipio.
-* 📄 **Paginación completa:** Todos los resultados de `/colonias` incluyen `pagina`, `total_paginas`, `pagina_anterior` y `pagina_siguiente` para navegar grandes conjuntos de datos.
-* 🛡️ **Rate Limiting por IP:** Protección integrada contra abuso mediante token bucket. Configurable con variables de entorno (`RATE_LIMIT`, `RATE_BURST`) sin recompilar.
-* 🗺️ **Soporte Geoespacial (GeoJSON):** Capacidad de descargar una versión espacial de la base de datos que incluye los polígonos de cada código postal.
-* 📍 **Geocodificación Inversa:** Búsqueda de colonias mediante coordenadas (Point-in-Polygon) y obtención de centroides geográficos.
-* 🏗️ **Arquitectura Hexagonal:** Código desacoplado, testeable y preparado para escalar.
+- ⚡ **Rendimiento Extremo:** Gracias a Go y Gin-Gonic, las respuestas se sirven en milisegundos.
+- 📦 **Base de Datos Embebida (SQLite):** No requiere instalar MySQL ni PostgreSQL. Descarga la base de datos lista para usar y arranca el servidor.
+- 🔎 **Búsquedas Flexibles y Optimizadas:**
+  - Por Código Postal exacto o parcial (ej. `067%`).
+  - Por Nombre de Colonia exacto o parcial (ignorando mayúsculas y minúsculas).
+  - Filtros combinados por Estado y Municipio.
+- 📄 **Paginación completa:** Todos los resultados de `/colonias` incluyen `pagina`, `total_paginas`, `pagina_anterior` y `pagina_siguiente` para navegar grandes conjuntos de datos.
+- 🛡️ **Rate Limiting por IP:** Protección integrada contra abuso mediante token bucket. Configurable con variables de entorno (`RATE_LIMIT`, `RATE_BURST`) sin recompilar.
+- 🗺️ **Soporte Geoespacial (GeoJSON):** Capacidad de descargar una versión espacial de la base de datos que incluye los polígonos de cada código postal.
+- 📍 **Geocodificación Inversa:** Búsqueda de colonias mediante coordenadas (Point-in-Polygon) y obtención de centroides geográficos.
+- 🏗️ **Arquitectura Hexagonal:** Código desacoplado, testeable y preparado para escalar.
 
 ## 🚀 Instalación y Uso
 
@@ -69,15 +69,17 @@ Si no deseas instalar Go o compilar el código por tu cuenta, hemos preparado ve
 **Paso 3:** Descomprime el archivo. Asegúrate de que tanto el ejecutable como el archivo de la base de datos (`mapa.db`) estén en la misma carpeta.
 **Paso 4:** Inicia el servidor:
 
-* **🪟 Windows:** Haz doble clic sobre el archivo `go-mexpost-api.exe`.
-* **🐧 Linux / 🍏 Mac:** Abre una terminal en esa carpeta, otorga permisos de ejecución y arráncalo con estos comandos:
+- **🪟 Windows:** Haz doble clic sobre el archivo `go-mexpost-api.exe`.
+- **🐧 Linux / 🍏 Mac:** Abre una terminal en esa carpeta, otorga permisos de ejecución y arráncalo con estos comandos:
   ```bash
   chmod +x go-mexpost-api
   ./go-mexpost-api
+  ```
 
 ---
 
 ### 1. Clonar el repositorio
+
 ```bash
 git clone https://github.com/open-mexico/go-mexpost.git
 cd go-mexpost
@@ -90,6 +92,7 @@ go mod tidy
 ```
 
 ### 3. Descargar la Base de Datos
+
 Go-MexPost cuenta con un comando especial para descargar la base de datos oficial (generada en nuestro repo ETL) directamente a tu proyecto.
 
 Opción A (Ligera): Solo datos postales y de texto (ideal para formularios).
@@ -105,6 +108,7 @@ go run ./cmd/setup/main.go -geo=true
 ```
 
 ### 4. Iniciar el Servidor
+
 ```bash
 go run ./cmd/api/main.go
 ```
@@ -113,11 +117,11 @@ La API estará corriendo en http://localhost:8080.
 
 ### 5. Variables de entorno (opcionales)
 
-| Variable | Default | Descripción |
-|---|---|---|
-| `PORT` | `8080` | Puerto en el que escucha el servidor |
-| `RATE_LIMIT` | `10` | Solicitudes por segundo permitidas por IP |
-| `RATE_BURST` | `30` | Ráfaga máxima instantánea por IP |
+| Variable     | Default | Descripción                               |
+| ------------ | ------- | ----------------------------------------- |
+| `PORT`       | `8080`  | Puerto en el que escucha el servidor      |
+| `RATE_LIMIT` | `10`    | Solicitudes por segundo permitidas por IP |
+| `RATE_BURST` | `30`    | Ráfaga máxima instantánea por IP          |
 
 ```bash
 # Ejemplo con configuración personalizada
@@ -136,9 +140,11 @@ Testify: Herramientas para pruebas unitarias (Mocks y Asserts).
 golang.org/x/time/rate: Token bucket para rate limiting por IP.
 
 ## 📊 Fuente de Datos
+
 La información es extraída, limpiada y optimizada desde las fuentes oficiales del Servicio Postal Mexicano (SEPOMEX/Correos de México) y cruzada con límites espaciales de Open Mexico GeoJSON.
 
 ## 🔑 Palabras Clave
+
 - Golang
 - Microservicio
 - Códigos Postales México
@@ -151,22 +157,31 @@ La información es extraída, limpiada y optimizada desde las fuentes oficiales 
 - Open Source
 
 ## 🤝 Contribuir
+
 ¡Las contribuciones son lo que hace a la comunidad de código abierto un lugar increíble! Si tienes una sugerencia para mejorar esto, por favor haz un fork del repositorio y crea un pull request.
 
 Haz un Fork del proyecto
 
 Crea tu rama de característica (git checkout -b feature/CaracteristicaIncreible)
 
-Haz commit de tus cambios (git commit -m 'Añadir CaracteristicaIncreible')
+Haz commit de tus cambios usando preferentemente **[Gitmoji](https://gitmoji.dev)** para los mensajes de commit:
+
+```bash
+git commit -m '✨ Añadir CaracteristicaIncreible'
+```
 
 Haz Push a la rama (git push origin feature/CaracteristicaIncreible)
 
 Abre un Pull Request
 
+> 💡 Usamos [Gitmoji](https://gitmoji.dev) como convención para los mensajes de commit. Agrega el emoji correspondiente al tipo de cambio (✨ nueva función, 🐛 bug fix, 📝 documentación, ♻️ refactor, etc.).
+
 ## 📄 Licencia
+
 Este proyecto está bajo la Licencia BSD-3 - mira el archivo LICENSE para más detalles.
 
 ## 🤗 Expresiones de Gratitud
+
 Comparte este proyecto con otros desarrolladores 🗣📢
 
 Invítame una cerveza 🍺 o un café ☕
