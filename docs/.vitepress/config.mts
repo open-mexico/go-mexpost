@@ -1,44 +1,51 @@
-import { defineConfig } from 'vitepress'
+import { defineConfig } from "vitepress";
 
 // https://vitepress.dev/reference/site-config
 export default defineConfig({
   title: "go-mexpost",
-  description: "Microservicio ultrarrápido para consulta de colonias, códigos postales y geocodificación inversa de México.",
-  base: process.env.GITHUB_ACTIONS ? '/go-mexpost/' : '/',
+  description:
+    "Microservicio ultrarrápido para consulta de colonias, códigos postales y geocodificación inversa de México.",
+  base: process.env.GITHUB_ACTIONS ? "/go-mexpost/" : "/",
   themeConfig: {
     // https://vitepress.dev/reference/default-theme-config
     nav: [
-      { text: 'Inicio', link: '/' },
-      { text: 'Configuración', link: '/configuracion' },
-      { text: 'API', link: '/endpoints' }
+      { text: "Inicio", link: "/" },
+      { text: "Configuración", link: "/configuracion" },
+      { text: "API", link: "/endpoints" },
+      { text: "IA", link: "/agentes-llm" },
     ],
 
     sidebar: [
       {
-        text: 'Primeros pasos',
+        text: "Primeros pasos",
         items: [
-          { text: 'Configuración e Instalación', link: '/configuracion' }
-        ]
+          { text: "Configuración e Instalación", link: "/configuracion" },
+        ],
       },
       {
-        text: 'Referencia de la API',
+        text: "Referencia de la API",
         items: [
-          { text: 'Endpoints', link: '/endpoints' }
-        ]
+          { text: "Endpoints", link: "/endpoints" },
+          { text: "LLM Endpoints (Consumo)", link: "/llm-endpoints" },
+        ],
       },
       {
-        text: 'Internals',
+        text: "Contribucion con IA",
+        items: [{ text: "Guia de Agentes LLM", link: "/agentes-llm" }],
+      },
+      {
+        text: "Internals",
         items: [
-          { text: 'Arquitectura Hexagonal', link: '/arquitectura' },
-          { text: 'Base de Datos', link: '/base-de-datos' },
-          { text: 'Geocodificación Inversa', link: '/geocodificacion' },
-          { text: 'Pruebas', link: '/pruebas' }
-        ]
-      }
+          { text: "Arquitectura Hexagonal", link: "/arquitectura" },
+          { text: "Base de Datos", link: "/base-de-datos" },
+          { text: "Geocodificación Inversa", link: "/geocodificacion" },
+          { text: "Pruebas", link: "/pruebas" },
+        ],
+      },
     ],
 
     socialLinks: [
-      { icon: 'github', link: 'https://github.com/open-mexico/go-mexpost' }
-    ]
-  }
-})
+      { icon: "github", link: "https://github.com/open-mexico/go-mexpost" },
+    ],
+  },
+});

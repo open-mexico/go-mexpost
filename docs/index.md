@@ -83,6 +83,18 @@ Usamos preferentemente **[Gitmoji](https://gitmoji.dev)** para los mensajes de c
 git commit -m '✨ Añadir endpoint de municipios'
 ```
 
+## IA y Automatización
+
+Si usarás agentes LLM para contribuir código en este repositorio:
+
+- Sigue la guía de contribución para IA: [Guía de Agentes LLM](/agentes-llm).
+- Usa el contrato de consumo API para asistentes integradores: [LLM Endpoints](/llm-endpoints).
+- Ejecuta siempre el gate de calidad antes de finalizar cambios:
+
+```bash
+make verify
+```
+
 ## Ejemplos rápidos
 
 ```
