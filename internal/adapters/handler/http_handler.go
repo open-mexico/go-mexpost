@@ -21,16 +21,17 @@ func NewHttpHandler(service ports.ColoniaService) *HttpHandler {
 }
 
 type coloniaResponse struct {
-	Codigo      string   `json:"codigo"`
-	Nombre      string   `json:"nombre"`
-	Tipo        string   `json:"tipo"`
-	Ciudad      string   `json:"ciudad"`
-	Zona        string   `json:"zona"`
-	EstadoID    string   `json:"estado_id"`
-	MunicipioID string   `json:"municipio_id"`
-	Geometria   *string  `json:"geometria,omitempty"`
-	CentroLon   *float64 `json:"centro_lon,omitempty"`
-	CentroLat   *float64 `json:"centro_lat,omitempty"`
+	Codigo          string   `json:"codigo"`
+	Nombre          string   `json:"nombre"`
+	Tipo            string   `json:"tipo"`
+	Ciudad          string   `json:"ciudad"`
+	Zona            string   `json:"zona"`
+	EstadoID        string   `json:"estado_id"`
+	MunicipioID     string   `json:"municipio_id"`
+	MunicipioNombre *string  `json:"municipio_nombre,omitempty"`
+	Geometria       *string  `json:"geometria,omitempty"`
+	CentroLon       *float64 `json:"centro_lon,omitempty"`
+	CentroLat       *float64 `json:"centro_lat,omitempty"`
 }
 
 type municipioResponse struct {
@@ -49,6 +50,12 @@ func (h *HttpHandler) BuscarColonias(c *gin.Context) {
 	soloGeo, ok := parseBoolQuery(c, "solo_geo", false)
 	if !ok {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "solo_geo debe ser true o false"})
+		return
+	}
+
+	incluirMunicipio, ok := parseBoolQuery(c, "incluir_municipio", false)
+	if !ok {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "incluir_municipio debe ser true o false"})
 		return
 	}
 
@@ -79,12 +86,13 @@ func (h *HttpHandler) BuscarColonias(c *gin.Context) {
 	offset := (pagina - 1) * limit
 
 	filtro := ports.ColoniaSearchFilter{
-		CP:          c.Query("cp"),
-		Nombre:      c.Query("nombre"),
-		MunicipioID: c.Query("municipio_id"),
-		SoloGeo:     soloGeo,
-		Limit:       limit,
-		Offset:      offset,
+		CP:               c.Query("cp"),
+		Nombre:           c.Query("nombre"),
+		MunicipioID:      c.Query("municipio_id"),
+		IncluirMunicipio: incluirMunicipio,
+		SoloGeo:          soloGeo,
+		Limit:            limit,
+		Offset:           offset,
 	}
 
 	total, err := h.service.ContarColonias(filtro)
@@ -105,7 +113,7 @@ func (h *HttpHandler) BuscarColonias(c *gin.Context) {
 
 	resp := make([]coloniaResponse, 0, len(colonias))
 	for _, col := range colonias {
-		resp = append(resp, toColoniaResponse(col, incluirGeo))
+		resp = append(resp, toColoniaResponse(col, incluirGeo, incluirMunicipio))
 	}
 
 	totalPaginas := int(math.Ceil(float64(total) / float64(limit)))
@@ -189,7 +197,7 @@ func (h *HttpHandler) BuscarCoordenadas(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"resultado": toColoniaResponse(*colonia, incluirGeo)})
+	c.JSON(http.StatusOK, gin.H{"resultado": toColoniaResponse(*colonia, incluirGeo, false)})
 }
 
 func (h *HttpHandler) writeError(c *gin.Context, err error) {
@@ -248,7 +256,7 @@ func buildQueryWithoutPagina(c *gin.Context) string {
 	return q.Encode()
 }
 
-func toColoniaResponse(col domain.Colonia, incluirGeo bool) coloniaResponse {
+func toColoniaResponse(col domain.Colonia, incluirGeo bool, incluirMunicipio bool) coloniaResponse {
 	resp := coloniaResponse{
 		Codigo:      col.Codigo,
 		Nombre:      col.Nombre,
@@ -257,6 +265,10 @@ func toColoniaResponse(col domain.Colonia, incluirGeo bool) coloniaResponse {
 		Zona:        col.Zona,
 		EstadoID:    col.EstadoID,
 		MunicipioID: col.MunicipioID,
+	}
+
+	if incluirMunicipio {
+		resp.MunicipioNombre = col.MunicipioNombre
 	}
 
 	if incluirGeo {

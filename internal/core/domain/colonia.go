@@ -16,20 +16,21 @@ func (e ValidationError) Error() string {
 
 // Colonia representa la estructura principal de los datos espaciales y postales.
 type Colonia struct {
-	Codigo      string
-	Nombre      string
-	Tipo        string
-	Ciudad      string
-	Zona        string
-	EstadoID    string
-	MunicipioID string
-	Geometria   *string
-	MinLon      float64
-	MinLat      float64
-	MaxLon      float64
-	MaxLat      float64
-	CentroLon   *float64
-	CentroLat   *float64
+	Codigo          string
+	Nombre          string
+	Tipo            string
+	Ciudad          string
+	Zona            string
+	EstadoID        string
+	MunicipioID     string
+	MunicipioNombre *string
+	Geometria       *string
+	MinLon          float64
+	MinLat          float64
+	MaxLon          float64
+	MaxLat          float64
+	CentroLon       *float64
+	CentroLat       *float64
 }
 
 // Municipio representa los municipios del catálogo nacional.

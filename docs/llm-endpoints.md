@@ -50,6 +50,7 @@ At least one must be present:
   - colonia name, exact or partial
   - case-insensitive
 - `municipio_id: string` (optional)
+- `incluir_municipio: bool` (optional, default `false`)
 - `incluir_geo: bool` (optional, default `false`)
 - `solo_geo: bool` (optional, default `false`)
 - `limit: int` (optional)
@@ -69,7 +70,8 @@ At least one must be present:
       "ciudad": "Ciudad de Mexico",
       "zona": "Urbano",
       "estado_id": "09",
-      "municipio_id": "015"
+      "municipio_id": "015",
+      "municipio_nombre": "Cuauhtemoc"
     }
   ],
   "total": 42,
@@ -86,6 +88,10 @@ If `incluir_geo=true`, each item may include:
 - `geometria` (GeoJSON string)
 - `centro_lon` (number)
 - `centro_lat` (number)
+
+If `incluir_municipio=true`, each item may include:
+
+- `municipio_nombre` (string), resolved by matching both `municipio_id` and `estado_id`
 
 ### Error patterns
 
@@ -173,6 +179,7 @@ export type Colonia = {
   zona: string;
   estado_id: string;
   municipio_id: string;
+  municipio_nombre?: string;
   geometria?: string;
   centro_lon?: number;
   centro_lat?: number;

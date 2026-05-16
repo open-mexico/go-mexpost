@@ -4,12 +4,13 @@ import "github.com/open-mexico/go-mexpost/internal/core/domain"
 
 // ColoniaSearchFilter define combinaciones de búsqueda para /colonias.
 type ColoniaSearchFilter struct {
-	CP          string
-	Nombre      string
-	MunicipioID string
-	SoloGeo     bool
-	Limit       int
-	Offset      int
+	CP               string
+	Nombre           string
+	MunicipioID      string
+	IncluirMunicipio bool
+	SoloGeo          bool
+	Limit            int
+	Offset           int
 }
 
 const (

@@ -15,6 +15,7 @@ Busca colonias con múltiples combinaciones de filtros.
 | `cp` | string | condicional* | Código postal, entre 3 y 5 dígitos (ej. `067`, `0671`, `06700`) |
 | `nombre` | string | condicional* | Nombre de colonia exacto o parcial (mínimo 3 chars, case-insensitive) |
 | `municipio_id` | string | no | Filtra por ID de municipio |
+| `incluir_municipio` | bool | no (default: `false`) | Si es `true`, agrega el nombre del municipio validado por `municipio_id` + `estado_id` |
 | `incluir_geo` | bool | no (default: `false`) | Si es `true`, incluye el polígono GeoJSON y el centroide |
 | `solo_geo` | bool | no (default: `false`) | Si es `true`, devuelve solo colonias que tienen geometría registrada |
 | `limit` | int | no | Máximo de resultados a devolver (default: `100`, máx: `500`; con `incluir_geo=true` default: `50`, máx: `100`) |
@@ -34,6 +35,7 @@ Busca colonias con múltiples combinaciones de filtros.
 | 6 | `?cp=067&municipio_id=015` | CP + municipio |
 | 7 | `?solo_geo=true&cp=067` | Solo colonias con polígono GeoJSON |
 | 8 | `?cp=067&incluir_geo=true` | Incluye geometría en la respuesta |
+| 9 | `?cp=067&incluir_municipio=true` | Incluye el nombre del municipio en la respuesta |
 
 ### Respuesta exitosa (200 OK)
 
@@ -47,7 +49,8 @@ Busca colonias con múltiples combinaciones de filtros.
       "ciudad": "Ciudad de México",
       "zona": "Urbano",
       "estado_id": "09",
-      "municipio_id": "015"
+      "municipio_id": "015",
+      "municipio_nombre": "Cuauhtémoc"
     }
   ],
   "total": 42,
@@ -88,6 +91,7 @@ Con `incluir_geo=true`:
 | `400 Bad Request` | `cp` con menos de 3 o más de 5 caracteres | `{"error": "parametros invalidos", "detalle": "cp invalido: usa entre 3 y 5 digitos (ej. 067 o 06700)"}` |
 | `400 Bad Request` | `cp` contiene caracteres no numéricos | `{"error": "parametros invalidos", "detalle": "cp invalido: solo se permiten digitos"}` |
 | `400 Bad Request` | Valor inválido en `incluir_geo` o `solo_geo` | `{"error": "incluir_geo debe ser true o false"}` |
+| `400 Bad Request` | Valor inválido en `incluir_municipio` | `{"error": "incluir_municipio debe ser true o false"}` |
 | `400 Bad Request` | Valor inválido en `limit` | `{"error": "limit debe ser un número entero positivo"}` |
 | `400 Bad Request` | `pagina` con valor menor a 1 o no numérico | `{"error": "parametros invalidos", "detalle": "pagina debe ser un número entero mayor a 0"}` |
 | `404 Not Found` | Ninguna colonia coincide con los filtros | `{"error": "no se encontraron resultados", "detalle": "ajusta tus filtros e intenta de nuevo"}` |
@@ -224,3 +228,7 @@ El campo `geometria` contiene un GeoJSON válido en texto. Se omite del JSON de 
 ### Los campos `centro_lon` / `centro_lat`
 
 Representan el centroide geográfico de la colonia, útil para centrar un mapa. Igual que `geometria`, solo se incluyen cuando `incluir_geo=true`.
+
+### El campo `municipio_nombre`
+
+Se incluye solo cuando `incluir_municipio=true`. Para evitar ambigüedades, se resuelve con `municipio_id` y `estado_id` (no solo por `municipio_id`).

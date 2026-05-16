@@ -65,7 +65,7 @@ func RateLimitMiddleware(requestsPerSecond float64, burst int) gin.HandlerFunc {
 		ip := c.ClientIP()
 		if !store.get(ip).Allow() {
 			c.AbortWithStatusJSON(http.StatusTooManyRequests, gin.H{
-				"error":  "demasiadas solicitudes",
+				"error":   "demasiadas solicitudes",
 				"detalle": "excediste el límite de solicitudes, intenta de nuevo en unos segundos",
 			})
 			return

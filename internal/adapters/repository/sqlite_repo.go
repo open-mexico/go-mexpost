@@ -25,44 +25,51 @@ func NewSQLiteRepository(rutaDB string) (ports.ColoniaRepository, error) {
 }
 
 func (r *sqliteRepo) SearchColonias(filter ports.ColoniaSearchFilter) ([]domain.Colonia, error) {
-	base := "SELECT codigo, nombre, tipo, ciudad, zona, estado_id, municipio_id, geometria, min_lon, min_lat, max_lon, max_lat, centro_lon, centro_lat FROM colonias"
+	base := "SELECT c.codigo, c.nombre, c.tipo, c.ciudad, c.zona, c.estado_id, c.municipio_id, c.geometria, c.min_lon, c.min_lat, c.max_lon, c.max_lat, c.centro_lon, c.centro_lat"
+	if filter.IncluirMunicipio {
+		base += ", m.nombre"
+	}
+	base += " FROM colonias c"
+	if filter.IncluirMunicipio {
+		base += " LEFT JOIN municipios m ON c.municipio_id = m.id AND c.estado_id = m.estado_id"
+	}
 	where := make([]string, 0, 4)
 	args := make([]any, 0, 4)
 
 	if filter.CP != "" {
 		if len(filter.CP) >= 3 {
-			where = append(where, "codigo LIKE ?")
+			where = append(where, "c.codigo LIKE ?")
 			args = append(args, filter.CP+"%")
 		} else {
-			where = append(where, "codigo = ?")
+			where = append(where, "c.codigo = ?")
 			args = append(args, filter.CP)
 		}
 	}
 
 	if filter.Nombre != "" {
 		if len(filter.Nombre) >= 3 {
-			where = append(where, "nombre_normalizado LIKE ?")
+			where = append(where, "c.nombre_normalizado LIKE ?")
 			args = append(args, "%"+filter.Nombre+"%")
 		} else {
-			where = append(where, "nombre_normalizado = ?")
+			where = append(where, "c.nombre_normalizado = ?")
 			args = append(args, filter.Nombre)
 		}
 	}
 
 	if filter.MunicipioID != "" {
-		where = append(where, "municipio_id = ?")
+		where = append(where, "c.municipio_id = ?")
 		args = append(args, filter.MunicipioID)
 	}
 
 	if filter.SoloGeo {
-		where = append(where, "geometria IS NOT NULL AND TRIM(geometria) <> ''")
+		where = append(where, "c.geometria IS NOT NULL AND TRIM(c.geometria) <> ''")
 	}
 
 	query := base
 	if len(where) > 0 {
 		query += " WHERE " + strings.Join(where, " AND ")
 	}
-	query += " ORDER BY codigo, nombre"
+	query += " ORDER BY c.codigo, c.nombre"
 	if filter.Limit > 0 {
 		query += " LIMIT ?"
 		args = append(args, filter.Limit)
@@ -82,23 +89,45 @@ func (r *sqliteRepo) SearchColonias(filter ports.ColoniaSearchFilter) ([]domain.
 	for filas.Next() {
 		var col domain.Colonia
 		var codigo, nombre, tipo, ciudad, zona, estadoID, municipioID sql.NullString
+		var municipioNombre sql.NullString
 		var minLon, minLat, maxLon, maxLat sql.NullFloat64
-		err := filas.Scan(
-			&codigo,
-			&nombre,
-			&tipo,
-			&ciudad,
-			&zona,
-			&estadoID,
-			&municipioID,
-			&col.Geometria,
-			&minLon,
-			&minLat,
-			&maxLon,
-			&maxLat,
-			&col.CentroLon,
-			&col.CentroLat,
-		)
+		var err error
+		if filter.IncluirMunicipio {
+			err = filas.Scan(
+				&codigo,
+				&nombre,
+				&tipo,
+				&ciudad,
+				&zona,
+				&estadoID,
+				&municipioID,
+				&col.Geometria,
+				&minLon,
+				&minLat,
+				&maxLon,
+				&maxLat,
+				&col.CentroLon,
+				&col.CentroLat,
+				&municipioNombre,
+			)
+		} else {
+			err = filas.Scan(
+				&codigo,
+				&nombre,
+				&tipo,
+				&ciudad,
+				&zona,
+				&estadoID,
+				&municipioID,
+				&col.Geometria,
+				&minLon,
+				&minLat,
+				&maxLon,
+				&maxLat,
+				&col.CentroLon,
+				&col.CentroLat,
+			)
+		}
 		if err != nil {
 			return nil, err
 		}
@@ -122,6 +151,10 @@ func (r *sqliteRepo) SearchColonias(filter ports.ColoniaSearchFilter) ([]domain.
 		}
 		if municipioID.Valid {
 			col.MunicipioID = municipioID.String
+		}
+		if municipioNombre.Valid {
+			value := municipioNombre.String
+			col.MunicipioNombre = &value
 		}
 		if minLon.Valid {
 			col.MinLon = minLon.Float64

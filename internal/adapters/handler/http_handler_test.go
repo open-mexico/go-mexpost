@@ -14,13 +14,14 @@ import (
 )
 
 type MockService struct {
-	Err       error
-	Colonias  []domain.Colonia
-	Municipio []domain.Municipio
+	Err               error
+	Colonias          []domain.Colonia
+	Municipio         []domain.Municipio
+	LastColoniaFilter ports.ColoniaSearchFilter
 }
 
 func (m *MockService) BuscarColonias(filter ports.ColoniaSearchFilter, incluirGeo bool) ([]domain.Colonia, error) {
-	_ = filter
+	m.LastColoniaFilter = filter
 	_ = incluirGeo
 	if m.Err != nil {
 		return nil, m.Err
@@ -148,6 +149,38 @@ func TestBuscarColonias_Status400LimitInvalido(t *testing.T) {
 	router.ServeHTTP(w, req)
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 	assert.Contains(t, w.Body.String(), "limit debe ser un número entero positivo")
+}
+
+func TestBuscarColonias_Status400IncluirMunicipioInvalido(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	manejador := handler.NewHttpHandler(&MockService{})
+	router := gin.New()
+	router.GET("/colonias", manejador.BuscarColonias)
+
+	req, _ := http.NewRequest("GET", "/colonias?cp=067&incluir_municipio=talvez", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+	assert.Contains(t, w.Body.String(), "incluir_municipio debe ser true o false")
+}
+
+func TestBuscarColonias_Status200ConMunicipio(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	municipioNombre := "Cuauhtemoc"
+	mockService := &MockService{Colonias: []domain.Colonia{{Codigo: "06700", Nombre: "Roma", MunicipioID: "015", EstadoID: "09", MunicipioNombre: &municipioNombre}}}
+	manejador := handler.NewHttpHandler(mockService)
+
+	router := gin.New()
+	router.GET("/colonias", manejador.BuscarColonias)
+
+	req, _ := http.NewRequest("GET", "/colonias?cp=067&incluir_municipio=true", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.True(t, mockService.LastColoniaFilter.IncluirMunicipio)
+	assert.Contains(t, w.Body.String(), "\"municipio_nombre\":\"Cuauhtemoc\"")
 }
 
 func TestBuscarMunicipios_Status404(t *testing.T) {
