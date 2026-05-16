@@ -156,6 +156,26 @@ La información es extraída, limpiada y optimizada desde las fuentes oficiales 
 - API REST México
 - Open Source
 
+## 🤖 Guía para IA (LLM Agents)
+
+Si vas a usar agentes LLM para contribuir código en este repositorio:
+
+- Revisa la guía principal del repositorio: **AGENTS.md**
+- Revisa la guía en documentación: **docs/agentes-llm.md**
+- Si el agente solo consumirá la API, usa también: **docs/llm-endpoints.md**
+
+### Gate mínimo de calidad (obligatorio)
+
+```bash
+make fmt
+make build
+make test
+make lint
+make verify
+```
+
+> Todo cambio que altere comportamiento observable debe reflejarse en `docs` y, de ser necesario, en este `README`.
+
 ## 🤝 Contribuir
 
 ¡Las contribuciones son lo que hace a la comunidad de código abierto un lugar increíble! Si tienes una sugerencia para mejorar esto, por favor haz un fork del repositorio y crea un pull request.
