@@ -129,3 +129,55 @@
   --vp-custom-block-tip-code-bg: var(--vp-c-brand-soft);
 }
 
+.llm-copy-block {
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 12px;
+  margin: 16px 0;
+  overflow: hidden;
+  background: var(--vp-c-bg-soft);
+}
+
+.llm-copy-header {
+  align-items: center;
+  background: var(--vp-c-default-soft);
+  display: flex;
+  justify-content: space-between;
+  padding: 12px 14px;
+}
+
+.llm-copy-button {
+  border: 1px solid var(--vp-c-brand-2);
+  border-radius: 8px;
+  background: var(--vp-c-brand-3);
+  color: var(--vp-button-brand-text);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  padding: 8px 10px;
+}
+
+.llm-copy-button:hover {
+  background: var(--vp-c-brand-2);
+}
+
+.llm-copy-pre {
+  margin: 0;
+  padding: 14px;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.llm-copy-pre code {
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.llm-copy-hint {
+  border-top: 1px solid var(--vp-c-divider);
+  color: var(--vp-c-text-2);
+  font-size: 12px;
+  margin: 0;
+  padding: 8px 14px;
+}
