@@ -18,6 +18,7 @@ type MockService struct {
 	Colonias          []domain.Colonia
 	Municipio         []domain.Municipio
 	LastColoniaFilter ports.ColoniaSearchFilter
+	LastCodigoID      string
 }
 
 func (m *MockService) BuscarColonias(filter ports.ColoniaSearchFilter, incluirGeo bool) ([]domain.Colonia, error) {
@@ -48,6 +49,19 @@ func (m *MockService) BuscarMunicipios(filter ports.MunicipioSearchFilter) ([]do
 func (m *MockService) BuscarPorCoordenadas(filter ports.ReverseGeocodeFilter, incluirGeo bool) (*domain.Colonia, error) {
 	_ = filter
 	_ = incluirGeo
+	if m.Err != nil {
+		return nil, m.Err
+	}
+	if len(m.Colonias) == 0 {
+		return nil, domain.ErrNotFound
+	}
+	return &m.Colonias[0], nil
+}
+
+func (m *MockService) BuscarColoniaPorID(codigoID string, incluirGeo bool, incluirMunicipio bool) (*domain.Colonia, error) {
+	m.LastCodigoID = codigoID
+	_ = incluirGeo
+	_ = incluirMunicipio
 	if m.Err != nil {
 		return nil, m.Err
 	}
@@ -168,7 +182,7 @@ func TestBuscarColonias_Status400IncluirMunicipioInvalido(t *testing.T) {
 func TestBuscarColonias_Status200ConMunicipio(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	municipioNombre := "Cuauhtemoc"
-	mockService := &MockService{Colonias: []domain.Colonia{{Codigo: "06700", Nombre: "Roma", MunicipioID: "015", EstadoID: "09", MunicipioNombre: &municipioNombre}}}
+	mockService := &MockService{Colonias: []domain.Colonia{{CodigoID: "09-015-06700-ROMA", Codigo: "06700", Nombre: "Roma", MunicipioID: "015", EstadoID: "09", MunicipioUID: "09-015", MunicipioNombre: &municipioNombre}}}
 	manejador := handler.NewHttpHandler(mockService)
 
 	router := gin.New()
@@ -181,6 +195,24 @@ func TestBuscarColonias_Status200ConMunicipio(t *testing.T) {
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.True(t, mockService.LastColoniaFilter.IncluirMunicipio)
 	assert.Contains(t, w.Body.String(), "\"municipio_nombre\":\"Cuauhtemoc\"")
+	assert.Contains(t, w.Body.String(), "\"codigo_id\":\"09-015-06700-ROMA\"")
+	assert.Contains(t, w.Body.String(), "\"municipio_uid\":\"09-015\"")
+}
+
+func TestBuscarColonias_Status200ConMunicipioUIDFiltro(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	mockService := &MockService{Colonias: []domain.Colonia{{Codigo: "06700", Nombre: "Roma"}}}
+	manejador := handler.NewHttpHandler(mockService)
+
+	router := gin.New()
+	router.GET("/colonias", manejador.BuscarColonias)
+
+	req, _ := http.NewRequest("GET", "/colonias?cp=067&municipio_uid=09-015", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, "09-015", mockService.LastColoniaFilter.MunicipioUID)
 }
 
 func TestBuscarMunicipios_Status404(t *testing.T) {
@@ -250,4 +282,38 @@ func TestBuscarColonias_Status500(t *testing.T) {
 	assert.Equal(t, http.StatusInternalServerError, w.Code)
 	assert.Contains(t, w.Body.String(), "error interno")
 	assert.Contains(t, w.Body.String(), "ocurrio un error procesando la solicitud")
+}
+
+func TestBuscarColoniaPorID_Status200(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	municipioNombre := "Cuauhtemoc"
+	mockService := &MockService{Colonias: []domain.Colonia{{CodigoID: "09-015-06700-ROMA", Codigo: "06700", Nombre: "Roma", MunicipioUID: "09-015", MunicipioNombre: &municipioNombre}}}
+	manejador := handler.NewHttpHandler(mockService)
+
+	router := gin.New()
+	router.GET("/colonias/id/:codigo_id", manejador.BuscarColoniaPorID)
+
+	req, _ := http.NewRequest("GET", "/colonias/id/09-015-06700-ROMA?incluir_municipio=true", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, "09-015-06700-ROMA", mockService.LastCodigoID)
+	assert.Contains(t, w.Body.String(), "\"codigo_id\":\"09-015-06700-ROMA\"")
+	assert.Contains(t, w.Body.String(), "\"resultado\"")
+}
+
+func TestBuscarColoniaPorID_Status400BoolInvalido(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	manejador := handler.NewHttpHandler(&MockService{})
+
+	router := gin.New()
+	router.GET("/colonias/id/:codigo_id", manejador.BuscarColoniaPorID)
+
+	req, _ := http.NewRequest("GET", "/colonias/id/09-015-06700-ROMA?incluir_geo=quizas", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+	assert.Contains(t, w.Body.String(), "incluir_geo debe ser true o false")
 }

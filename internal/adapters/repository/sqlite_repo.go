@@ -13,6 +13,29 @@ type sqliteRepo struct {
 	db *sql.DB
 }
 
+const coloniaViewSelect = `
+	v.codigo_id,
+	v.codigo,
+	v.colonia_nombre,
+	v.tipo,
+	v.ciudad,
+	v.zona,
+	v.estado_id,
+	v.municipio_id,
+	v.municipio_uid,
+	v.municipio_nombre,
+	v.geometria,
+	v.min_lon,
+	v.min_lat,
+	v.max_lon,
+	v.max_lat,
+	v.centro_lon,
+	v.centro_lat`
+
+type rowScanner interface {
+	Scan(dest ...any) error
+}
+
 func NewSQLiteRepository(rutaDB string) (ports.ColoniaRepository, error) {
 	db, err := sql.Open("sqlite", rutaDB)
 	if err != nil {
@@ -24,52 +47,139 @@ func NewSQLiteRepository(rutaDB string) (ports.ColoniaRepository, error) {
 	return &sqliteRepo{db: db}, nil
 }
 
+func scanColonia(scanner rowScanner) (domain.Colonia, error) {
+	var col domain.Colonia
+	var codigoID, codigo, nombre, tipo, ciudad, zona, estadoID, municipioID sql.NullString
+	var municipioUID, municipioNombre, geometria sql.NullString
+	var minLon, minLat, maxLon, maxLat sql.NullFloat64
+	var centroLon, centroLat sql.NullFloat64
+
+	err := scanner.Scan(
+		&codigoID,
+		&codigo,
+		&nombre,
+		&tipo,
+		&ciudad,
+		&zona,
+		&estadoID,
+		&municipioID,
+		&municipioUID,
+		&municipioNombre,
+		&geometria,
+		&minLon,
+		&minLat,
+		&maxLon,
+		&maxLat,
+		&centroLon,
+		&centroLat,
+	)
+	if err != nil {
+		return col, err
+	}
+
+	if codigoID.Valid {
+		col.CodigoID = codigoID.String
+	}
+	if codigo.Valid {
+		col.Codigo = codigo.String
+	}
+	if nombre.Valid {
+		col.Nombre = nombre.String
+	}
+	if tipo.Valid {
+		col.Tipo = tipo.String
+	}
+	if ciudad.Valid {
+		col.Ciudad = ciudad.String
+	}
+	if zona.Valid {
+		col.Zona = zona.String
+	}
+	if estadoID.Valid {
+		col.EstadoID = estadoID.String
+	}
+	if municipioID.Valid {
+		col.MunicipioID = municipioID.String
+	}
+	if municipioUID.Valid {
+		col.MunicipioUID = municipioUID.String
+	}
+	if municipioNombre.Valid {
+		value := municipioNombre.String
+		col.MunicipioNombre = &value
+	}
+	if geometria.Valid {
+		value := geometria.String
+		col.Geometria = &value
+	}
+	if minLon.Valid {
+		col.MinLon = minLon.Float64
+	}
+	if minLat.Valid {
+		col.MinLat = minLat.Float64
+	}
+	if maxLon.Valid {
+		col.MaxLon = maxLon.Float64
+	}
+	if maxLat.Valid {
+		col.MaxLat = maxLat.Float64
+	}
+	if centroLon.Valid {
+		value := centroLon.Float64
+		col.CentroLon = &value
+	}
+	if centroLat.Valid {
+		value := centroLat.Float64
+		col.CentroLat = &value
+	}
+
+	return col, nil
+}
+
 func (r *sqliteRepo) SearchColonias(filter ports.ColoniaSearchFilter) ([]domain.Colonia, error) {
-	base := "SELECT c.codigo, c.nombre, c.tipo, c.ciudad, c.zona, c.estado_id, c.municipio_id, c.geometria, c.min_lon, c.min_lat, c.max_lon, c.max_lat, c.centro_lon, c.centro_lat"
-	if filter.IncluirMunicipio {
-		base += ", m.nombre"
-	}
-	base += " FROM colonias c"
-	if filter.IncluirMunicipio {
-		base += " LEFT JOIN municipios m ON c.municipio_id = m.id AND c.estado_id = m.estado_id"
-	}
+	base := "SELECT " + coloniaViewSelect + " FROM vw_colonias_busqueda v"
 	where := make([]string, 0, 4)
 	args := make([]any, 0, 4)
 
 	if filter.CP != "" {
 		if len(filter.CP) >= 3 {
-			where = append(where, "c.codigo LIKE ?")
+			where = append(where, "v.codigo LIKE ?")
 			args = append(args, filter.CP+"%")
 		} else {
-			where = append(where, "c.codigo = ?")
+			where = append(where, "v.codigo = ?")
 			args = append(args, filter.CP)
 		}
 	}
 
 	if filter.Nombre != "" {
 		if len(filter.Nombre) >= 3 {
-			where = append(where, "c.nombre_normalizado LIKE ?")
+			where = append(where, "v.colonia_nombre_normalizado LIKE ?")
 			args = append(args, "%"+filter.Nombre+"%")
 		} else {
-			where = append(where, "c.nombre_normalizado = ?")
+			where = append(where, "v.colonia_nombre_normalizado = ?")
 			args = append(args, filter.Nombre)
 		}
 	}
 
 	if filter.MunicipioID != "" {
-		where = append(where, "c.municipio_id = ?")
+		where = append(where, "v.municipio_id = ?")
 		args = append(args, filter.MunicipioID)
 	}
 
+	if filter.MunicipioUID != "" {
+		where = append(where, "v.municipio_uid = ?")
+		args = append(args, filter.MunicipioUID)
+	}
+
 	if filter.SoloGeo {
-		where = append(where, "c.geometria IS NOT NULL AND TRIM(c.geometria) <> ''")
+		where = append(where, "v.geometria IS NOT NULL AND TRIM(v.geometria) <> ''")
 	}
 
 	query := base
 	if len(where) > 0 {
 		query += " WHERE " + strings.Join(where, " AND ")
 	}
-	query += " ORDER BY c.codigo, c.nombre"
+	query += " ORDER BY v.codigo, v.colonia_nombre"
 	if filter.Limit > 0 {
 		query += " LIMIT ?"
 		args = append(args, filter.Limit)
@@ -87,86 +197,9 @@ func (r *sqliteRepo) SearchColonias(filter ports.ColoniaSearchFilter) ([]domain.
 
 	var resultados []domain.Colonia
 	for filas.Next() {
-		var col domain.Colonia
-		var codigo, nombre, tipo, ciudad, zona, estadoID, municipioID sql.NullString
-		var municipioNombre sql.NullString
-		var minLon, minLat, maxLon, maxLat sql.NullFloat64
-		var err error
-		if filter.IncluirMunicipio {
-			err = filas.Scan(
-				&codigo,
-				&nombre,
-				&tipo,
-				&ciudad,
-				&zona,
-				&estadoID,
-				&municipioID,
-				&col.Geometria,
-				&minLon,
-				&minLat,
-				&maxLon,
-				&maxLat,
-				&col.CentroLon,
-				&col.CentroLat,
-				&municipioNombre,
-			)
-		} else {
-			err = filas.Scan(
-				&codigo,
-				&nombre,
-				&tipo,
-				&ciudad,
-				&zona,
-				&estadoID,
-				&municipioID,
-				&col.Geometria,
-				&minLon,
-				&minLat,
-				&maxLon,
-				&maxLat,
-				&col.CentroLon,
-				&col.CentroLat,
-			)
-		}
+		col, err := scanColonia(filas)
 		if err != nil {
 			return nil, err
-		}
-		if codigo.Valid {
-			col.Codigo = codigo.String
-		}
-		if nombre.Valid {
-			col.Nombre = nombre.String
-		}
-		if tipo.Valid {
-			col.Tipo = tipo.String
-		}
-		if ciudad.Valid {
-			col.Ciudad = ciudad.String
-		}
-		if zona.Valid {
-			col.Zona = zona.String
-		}
-		if estadoID.Valid {
-			col.EstadoID = estadoID.String
-		}
-		if municipioID.Valid {
-			col.MunicipioID = municipioID.String
-		}
-		if municipioNombre.Valid {
-			value := municipioNombre.String
-			col.MunicipioNombre = &value
-		}
-		if minLon.Valid {
-			col.MinLon = minLon.Float64
-		}
-		if minLat.Valid {
-			col.MinLat = minLat.Float64
-		}
-		if maxLon.Valid {
-			col.MaxLon = maxLon.Float64
-		}
-		if maxLat.Valid {
-			col.MaxLat = maxLat.Float64
 		}
 		resultados = append(resultados, col)
 	}
@@ -178,7 +211,7 @@ func (r *sqliteRepo) SearchColonias(filter ports.ColoniaSearchFilter) ([]domain.
 }
 
 func (r *sqliteRepo) SearchMunicipios(filter ports.MunicipioSearchFilter) ([]domain.Municipio, error) {
-	base := "SELECT id, nombre, estado_id FROM municipios"
+	base := "SELECT id, nombre, estado_id, municipio_uid FROM municipios"
 	where := make([]string, 0, 2)
 	args := make([]any, 0, 2)
 
@@ -212,8 +245,8 @@ func (r *sqliteRepo) SearchMunicipios(filter ports.MunicipioSearchFilter) ([]dom
 	var resultados []domain.Municipio
 	for filas.Next() {
 		var m domain.Municipio
-		var id, nombre, estadoID sql.NullString
-		if err := filas.Scan(&id, &nombre, &estadoID); err != nil {
+		var id, nombre, estadoID, municipioUID sql.NullString
+		if err := filas.Scan(&id, &nombre, &estadoID, &municipioUID); err != nil {
 			return nil, err
 		}
 		if id.Valid {
@@ -224,6 +257,9 @@ func (r *sqliteRepo) SearchMunicipios(filter ports.MunicipioSearchFilter) ([]dom
 		}
 		if estadoID.Valid {
 			m.EstadoID = estadoID.String
+		}
+		if municipioUID.Valid {
+			m.MunicipioUID = municipioUID.String
 		}
 		resultados = append(resultados, m)
 	}
@@ -236,21 +272,21 @@ func (r *sqliteRepo) SearchMunicipios(filter ports.MunicipioSearchFilter) ([]dom
 
 func (r *sqliteRepo) FindColoniasByPointBBox(filter ports.ReverseGeocodeFilter) ([]domain.Colonia, error) {
 	query := `
-		SELECT codigo, nombre, tipo, ciudad, zona, estado_id, municipio_id, geometria, min_lon, min_lat, max_lon, max_lat, centro_lon, centro_lat
-		FROM colonias
-		WHERE min_lat <= ?
-		  AND max_lat >= ?
-		  AND min_lon <= ?
-		  AND max_lon >= ?`
+		SELECT ` + coloniaViewSelect + `
+		FROM vw_colonias_busqueda v
+		WHERE v.min_lat <= ?
+		  AND v.max_lat >= ?
+		  AND v.min_lon <= ?
+		  AND v.max_lon >= ?`
 	args := []any{filter.Lat, filter.Lat, filter.Lon, filter.Lon}
 
 	if filter.EstadoID != "" {
-		query += " AND estado_id = ?"
+		query += " AND v.estado_id = ?"
 		args = append(args, filter.EstadoID)
 	}
 
-	query += " AND geometria IS NOT NULL AND TRIM(geometria) <> ''"
-	query += " ORDER BY codigo, nombre"
+	query += " AND v.geometria IS NOT NULL AND TRIM(v.geometria) <> ''"
+	query += " ORDER BY v.codigo, v.colonia_nombre"
 
 	filas, err := r.db.Query(query, args...)
 	if err != nil {
@@ -260,59 +296,9 @@ func (r *sqliteRepo) FindColoniasByPointBBox(filter ports.ReverseGeocodeFilter) 
 
 	var resultados []domain.Colonia
 	for filas.Next() {
-		var col domain.Colonia
-		var codigo, nombre, tipo, ciudad, zona, estadoID, municipioID sql.NullString
-		var minLon, minLat, maxLon, maxLat sql.NullFloat64
-		if err := filas.Scan(
-			&codigo,
-			&nombre,
-			&tipo,
-			&ciudad,
-			&zona,
-			&estadoID,
-			&municipioID,
-			&col.Geometria,
-			&minLon,
-			&minLat,
-			&maxLon,
-			&maxLat,
-			&col.CentroLon,
-			&col.CentroLat,
-		); err != nil {
+		col, err := scanColonia(filas)
+		if err != nil {
 			return nil, err
-		}
-		if codigo.Valid {
-			col.Codigo = codigo.String
-		}
-		if nombre.Valid {
-			col.Nombre = nombre.String
-		}
-		if tipo.Valid {
-			col.Tipo = tipo.String
-		}
-		if ciudad.Valid {
-			col.Ciudad = ciudad.String
-		}
-		if zona.Valid {
-			col.Zona = zona.String
-		}
-		if estadoID.Valid {
-			col.EstadoID = estadoID.String
-		}
-		if municipioID.Valid {
-			col.MunicipioID = municipioID.String
-		}
-		if minLon.Valid {
-			col.MinLon = minLon.Float64
-		}
-		if minLat.Valid {
-			col.MinLat = minLat.Float64
-		}
-		if maxLon.Valid {
-			col.MaxLon = maxLon.Float64
-		}
-		if maxLat.Valid {
-			col.MaxLat = maxLat.Float64
 		}
 		resultados = append(resultados, col)
 	}
@@ -326,7 +312,7 @@ func (r *sqliteRepo) FindColoniasByPointBBox(filter ports.ReverseGeocodeFilter) 
 var _ ports.ColoniaRepository = (*sqliteRepo)(nil)
 
 func (r *sqliteRepo) CountColonias(filter ports.ColoniaSearchFilter) (int, error) {
-	base := "SELECT COUNT(*) FROM colonias"
+	base := "SELECT COUNT(*) FROM vw_colonias_busqueda"
 	where := make([]string, 0, 4)
 	args := make([]any, 0, 4)
 
@@ -341,16 +327,20 @@ func (r *sqliteRepo) CountColonias(filter ports.ColoniaSearchFilter) (int, error
 	}
 	if filter.Nombre != "" {
 		if len(filter.Nombre) >= 3 {
-			where = append(where, "nombre_normalizado LIKE ? ")
+			where = append(where, "colonia_nombre_normalizado LIKE ?")
 			args = append(args, "%"+filter.Nombre+"%")
 		} else {
-			where = append(where, "nombre_normalizado = ? ")
+			where = append(where, "colonia_nombre_normalizado = ?")
 			args = append(args, filter.Nombre)
 		}
 	}
 	if filter.MunicipioID != "" {
 		where = append(where, "municipio_id = ?")
 		args = append(args, filter.MunicipioID)
+	}
+	if filter.MunicipioUID != "" {
+		where = append(where, "municipio_uid = ?")
+		args = append(args, filter.MunicipioUID)
 	}
 	if filter.SoloGeo {
 		where = append(where, "geometria IS NOT NULL AND TRIM(geometria) <> ''")
@@ -366,4 +356,19 @@ func (r *sqliteRepo) CountColonias(filter ports.ColoniaSearchFilter) (int, error
 		return 0, err
 	}
 	return total, nil
+}
+
+func (r *sqliteRepo) FindColoniaByCodigoID(codigoID string) (*domain.Colonia, error) {
+	query := "SELECT " + coloniaViewSelect + " FROM vw_colonias_busqueda v WHERE v.codigo_id = ? LIMIT 1"
+	row := r.db.QueryRow(query, codigoID)
+
+	colonia, err := scanColonia(row)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	return &colonia, nil
 }

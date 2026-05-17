@@ -47,7 +47,8 @@ Proveer una API REST robusta, eficiente y de nivel empresarial para desarrollado
 - 🔎 **Búsquedas Flexibles y Optimizadas:**
   - Por Código Postal exacto o parcial (ej. `067%`).
   - Por Nombre de Colonia exacto o parcial (ignorando mayúsculas y minúsculas).
-  - Filtros combinados por Estado y Municipio.
+  - Filtros combinados por Estado y Municipio (`municipio_id` o `municipio_uid`).
+- 🆔 **Lookup por ID único de colonia (`codigo_id`):** Endpoint directo para resolver una colonia exacta sin ambigüedades.
 - 📄 **Paginación completa:** Todos los resultados de `/colonias` incluyen `pagina`, `total_paginas`, `pagina_anterior` y `pagina_siguiente` para navegar grandes conjuntos de datos.
 - 🛡️ **Rate Limiting por IP:** Protección integrada contra abuso mediante token bucket. Configurable con variables de entorno (`RATE_LIMIT`, `RATE_BURST`) sin recompilar.
 - 🗺️ **Soporte Geoespacial (GeoJSON):** Capacidad de descargar una versión espacial de la base de datos que incluye los polígonos de cada código postal.
@@ -114,6 +115,16 @@ go run ./cmd/api/main.go
 ```
 
 La API estará corriendo en http://localhost:8080.
+
+Ejemplos rápidos:
+
+```bash
+# Búsqueda tradicional
+curl "http://localhost:8080/colonias?cp=067&incluir_municipio=true"
+
+# Búsqueda directa por ID único de colonia
+curl "http://localhost:8080/colonias/id/09-015-06700-ROMA%20NORTE"
+```
 
 ### 5. Variables de entorno (opcionales)
 

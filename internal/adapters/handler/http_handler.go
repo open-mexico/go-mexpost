@@ -21,6 +21,7 @@ func NewHttpHandler(service ports.ColoniaService) *HttpHandler {
 }
 
 type coloniaResponse struct {
+	CodigoID        string   `json:"codigo_id,omitempty"`
 	Codigo          string   `json:"codigo"`
 	Nombre          string   `json:"nombre"`
 	Tipo            string   `json:"tipo"`
@@ -28,6 +29,7 @@ type coloniaResponse struct {
 	Zona            string   `json:"zona"`
 	EstadoID        string   `json:"estado_id"`
 	MunicipioID     string   `json:"municipio_id"`
+	MunicipioUID    string   `json:"municipio_uid,omitempty"`
 	MunicipioNombre *string  `json:"municipio_nombre,omitempty"`
 	Geometria       *string  `json:"geometria,omitempty"`
 	CentroLon       *float64 `json:"centro_lon,omitempty"`
@@ -35,9 +37,10 @@ type coloniaResponse struct {
 }
 
 type municipioResponse struct {
-	ID       string `json:"id"`
-	Nombre   string `json:"nombre"`
-	EstadoID string `json:"estado_id"`
+	ID           string `json:"id"`
+	Nombre       string `json:"nombre"`
+	EstadoID     string `json:"estado_id"`
+	MunicipioUID string `json:"municipio_uid,omitempty"`
 }
 
 func (h *HttpHandler) BuscarColonias(c *gin.Context) {
@@ -89,6 +92,7 @@ func (h *HttpHandler) BuscarColonias(c *gin.Context) {
 		CP:               c.Query("cp"),
 		Nombre:           c.Query("nombre"),
 		MunicipioID:      c.Query("municipio_id"),
+		MunicipioUID:     c.Query("municipio_uid"),
 		IncluirMunicipio: incluirMunicipio,
 		SoloGeo:          soloGeo,
 		Limit:            limit,
@@ -154,10 +158,32 @@ func (h *HttpHandler) BuscarMunicipios(c *gin.Context) {
 
 	resp := make([]municipioResponse, 0, len(municipios))
 	for _, m := range municipios {
-		resp = append(resp, municipioResponse{ID: m.ID, Nombre: m.Nombre, EstadoID: m.EstadoID})
+		resp = append(resp, municipioResponse{ID: m.ID, Nombre: m.Nombre, EstadoID: m.EstadoID, MunicipioUID: m.MunicipioUID})
 	}
 
 	c.JSON(http.StatusOK, gin.H{"resultados": resp})
+}
+
+func (h *HttpHandler) BuscarColoniaPorID(c *gin.Context) {
+	incluirGeo, ok := parseBoolQuery(c, "incluir_geo", false)
+	if !ok {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "incluir_geo debe ser true o false"})
+		return
+	}
+
+	incluirMunicipio, ok := parseBoolQuery(c, "incluir_municipio", true)
+	if !ok {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "incluir_municipio debe ser true o false"})
+		return
+	}
+
+	colonia, err := h.service.BuscarColoniaPorID(c.Param("codigo_id"), incluirGeo, incluirMunicipio)
+	if err != nil {
+		h.writeError(c, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"resultado": toColoniaResponse(*colonia, incluirGeo, incluirMunicipio)})
 }
 
 func (h *HttpHandler) BuscarCoordenadas(c *gin.Context) {
@@ -258,13 +284,15 @@ func buildQueryWithoutPagina(c *gin.Context) string {
 
 func toColoniaResponse(col domain.Colonia, incluirGeo bool, incluirMunicipio bool) coloniaResponse {
 	resp := coloniaResponse{
-		Codigo:      col.Codigo,
-		Nombre:      col.Nombre,
-		Tipo:        col.Tipo,
-		Ciudad:      col.Ciudad,
-		Zona:        col.Zona,
-		EstadoID:    col.EstadoID,
-		MunicipioID: col.MunicipioID,
+		CodigoID:     col.CodigoID,
+		Codigo:       col.Codigo,
+		Nombre:       col.Nombre,
+		Tipo:         col.Tipo,
+		Ciudad:       col.Ciudad,
+		Zona:         col.Zona,
+		EstadoID:     col.EstadoID,
+		MunicipioID:  col.MunicipioID,
+		MunicipioUID: col.MunicipioUID,
 	}
 
 	if incluirMunicipio {

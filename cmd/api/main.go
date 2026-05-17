@@ -38,6 +38,7 @@ func main() {
 	log.Printf("🛡️  Rate limit: %.0f req/s por IP, burst %d", rateLimit, rateBurst)
 
 	router.GET("/colonias", apiHandler.BuscarColonias)
+	router.GET("/colonias/id/:codigo_id", apiHandler.BuscarColoniaPorID)
 	router.GET("/municipios", apiHandler.BuscarMunicipios)
 	router.GET("/coordenadas", apiHandler.BuscarCoordenadas)
 

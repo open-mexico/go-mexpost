@@ -7,6 +7,7 @@ type ColoniaSearchFilter struct {
 	CP               string
 	Nombre           string
 	MunicipioID      string
+	MunicipioUID     string
 	IncluirMunicipio bool
 	SoloGeo          bool
 	Limit            int
@@ -37,6 +38,7 @@ type ReverseGeocodeFilter struct {
 type ColoniaRepository interface {
 	SearchColonias(filter ColoniaSearchFilter) ([]domain.Colonia, error)
 	CountColonias(filter ColoniaSearchFilter) (int, error)
+	FindColoniaByCodigoID(codigoID string) (*domain.Colonia, error)
 	SearchMunicipios(filter MunicipioSearchFilter) ([]domain.Municipio, error)
 	FindColoniasByPointBBox(filter ReverseGeocodeFilter) ([]domain.Colonia, error)
 }
@@ -45,6 +47,7 @@ type ColoniaRepository interface {
 type ColoniaService interface {
 	BuscarColonias(filter ColoniaSearchFilter, incluirGeo bool) ([]domain.Colonia, error)
 	ContarColonias(filter ColoniaSearchFilter) (int, error)
+	BuscarColoniaPorID(codigoID string, incluirGeo bool, incluirMunicipio bool) (*domain.Colonia, error)
 	BuscarMunicipios(filter MunicipioSearchFilter) ([]domain.Municipio, error)
 	BuscarPorCoordenadas(filter ReverseGeocodeFilter, incluirGeo bool) (*domain.Colonia, error)
 }

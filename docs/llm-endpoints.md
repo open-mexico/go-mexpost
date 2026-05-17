@@ -17,6 +17,7 @@ Source references used:
 - Methods: read-only `GET`
 - Core endpoints:
   - `GET /colonias`
+  - `GET /colonias/id/:codigo_id`
   - `GET /municipios`
   - `GET /coordenadas`
 
@@ -50,6 +51,7 @@ At least one must be present:
   - colonia name, exact or partial
   - case-insensitive
 - `municipio_id: string` (optional)
+- `municipio_uid: string` (optional)
 - `incluir_municipio: bool` (optional, default `false`)
 - `incluir_geo: bool` (optional, default `false`)
 - `solo_geo: bool` (optional, default `false`)
@@ -64,6 +66,7 @@ At least one must be present:
 {
   "resultados": [
     {
+      "codigo_id": "09-015-06700-ROMA NORTE",
       "codigo": "06700",
       "nombre": "Roma Norte",
       "tipo": "Colonia",
@@ -71,6 +74,7 @@ At least one must be present:
       "zona": "Urbano",
       "estado_id": "09",
       "municipio_id": "015",
+      "municipio_uid": "09-015",
       "municipio_nombre": "Cuauhtemoc"
     }
   ],
@@ -122,7 +126,8 @@ At least one must be present:
     {
       "id": "120",
       "nombre": "Zapopan",
-      "estado_id": "14"
+      "estado_id": "14",
+      "municipio_uid": "14-120"
     }
   ]
 }
@@ -168,10 +173,48 @@ Note: `/coordenadas` returns one object in `resultado`, not an array.
 - `400` out-of-range coordinates
 - `404` point not inside any colonia geometry
 
+## 3.4 `GET /colonias/id/:codigo_id`
+
+Direct lookup by unique colonia ID.
+
+### Path parameters
+
+- `codigo_id: string` (required)
+
+### Query parameters
+
+- `incluir_geo: bool` (optional, default `false`)
+- `incluir_municipio: bool` (optional, default `true`)
+
+### Response shape (success)
+
+```json
+{
+  "resultado": {
+    "codigo_id": "09-015-06700-ROMA NORTE",
+    "codigo": "06700",
+    "nombre": "Roma Norte",
+    "tipo": "Colonia",
+    "ciudad": "Ciudad de Mexico",
+    "zona": "Urbano",
+    "estado_id": "09",
+    "municipio_id": "015",
+    "municipio_uid": "09-015",
+    "municipio_nombre": "Cuauhtemoc"
+  }
+}
+```
+
+### Error patterns
+
+- `400` invalid booleans or empty `codigo_id`
+- `404` no colonia for `codigo_id`
+
 ## 4. Normalized Types for Client Code
 
 ```ts
 export type Colonia = {
+  codigo_id?: string;
   codigo: string;
   nombre: string;
   tipo: string;
@@ -179,6 +222,7 @@ export type Colonia = {
   zona: string;
   estado_id: string;
   municipio_id: string;
+  municipio_uid?: string;
   municipio_nombre?: string;
   geometria?: string;
   centro_lon?: number;
@@ -189,6 +233,7 @@ export type Municipio = {
   id: string;
   nombre: string;
   estado_id: string;
+  municipio_uid?: string;
 };
 
 export type ColoniasResponse = {
@@ -206,6 +251,10 @@ export type MunicipiosResponse = {
 };
 
 export type CoordenadasResponse = {
+  resultado: Colonia;
+};
+
+export type ColoniaPorIDResponse = {
   resultado: Colonia;
 };
 
@@ -251,6 +300,7 @@ Your job is to build safe, valid requests against this API only:
 
 - Base URL: http://localhost:8080
 - Endpoints: GET /colonias, GET /municipios, GET /coordenadas
+- Endpoints: GET /colonias, GET /colonias/id/:codigo_id, GET /municipios, GET /coordenadas
 
 Validation rules:
 

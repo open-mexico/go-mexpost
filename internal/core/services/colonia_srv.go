@@ -17,8 +17,9 @@ func NewColoniaService(repo ports.ColoniaRepository) ports.ColoniaService {
 
 func (s *coloniaService) BuscarColonias(filter ports.ColoniaSearchFilter, incluirGeo bool) ([]domain.Colonia, error) {
 	filter.CP = strings.TrimSpace(filter.CP)
-	filter.Nombre = strings.TrimSpace(filter.Nombre)
+	filter.Nombre = strings.ToLower(strings.TrimSpace(filter.Nombre))
 	filter.MunicipioID = strings.TrimSpace(filter.MunicipioID)
+	filter.MunicipioUID = strings.TrimSpace(filter.MunicipioUID)
 
 	if filter.CP == "" && filter.Nombre == "" {
 		return nil, domain.ValidationError{Message: "debes proporcionar cp o nombre"}
@@ -61,11 +62,44 @@ func (s *coloniaService) BuscarColonias(filter ports.ColoniaSearchFilter, inclui
 		}
 	}
 
+	if !filter.IncluirMunicipio {
+		for i := range resultados {
+			resultados[i].MunicipioNombre = nil
+		}
+	}
+
 	return resultados, nil
 }
 
+func (s *coloniaService) BuscarColoniaPorID(codigoID string, incluirGeo bool, incluirMunicipio bool) (*domain.Colonia, error) {
+	codigoID = strings.TrimSpace(codigoID)
+	if codigoID == "" {
+		return nil, domain.ValidationError{Message: "codigo_id es obligatorio"}
+	}
+
+	colonia, err := s.repo.FindColoniaByCodigoID(codigoID)
+	if err != nil {
+		return nil, err
+	}
+	if colonia == nil {
+		return nil, domain.ErrNotFound
+	}
+
+	if !incluirGeo {
+		colonia.Geometria = nil
+		colonia.CentroLat = nil
+		colonia.CentroLon = nil
+	}
+
+	if !incluirMunicipio {
+		colonia.MunicipioNombre = nil
+	}
+
+	return colonia, nil
+}
+
 func (s *coloniaService) BuscarMunicipios(filter ports.MunicipioSearchFilter) ([]domain.Municipio, error) {
-	filter.Nombre = strings.TrimSpace(filter.Nombre)
+	filter.Nombre = strings.ToLower(strings.TrimSpace(filter.Nombre))
 	filter.EstadoID = strings.TrimSpace(filter.EstadoID)
 
 	if filter.Nombre == "" && filter.EstadoID == "" {
@@ -126,8 +160,9 @@ func (s *coloniaService) BuscarPorCoordenadas(filter ports.ReverseGeocodeFilter,
 
 func (s *coloniaService) ContarColonias(filter ports.ColoniaSearchFilter) (int, error) {
 	filter.CP = strings.TrimSpace(filter.CP)
-	filter.Nombre = strings.TrimSpace(filter.Nombre)
+	filter.Nombre = strings.ToLower(strings.TrimSpace(filter.Nombre))
 	filter.MunicipioID = strings.TrimSpace(filter.MunicipioID)
+	filter.MunicipioUID = strings.TrimSpace(filter.MunicipioUID)
 
 	if filter.CP == "" && filter.Nombre == "" {
 		return 0, domain.ValidationError{Message: "debes proporcionar cp o nombre"}

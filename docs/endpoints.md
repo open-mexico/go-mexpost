@@ -15,6 +15,7 @@ Busca colonias con múltiples combinaciones de filtros.
 | `cp` | string | condicional* | Código postal, entre 3 y 5 dígitos (ej. `067`, `0671`, `06700`) |
 | `nombre` | string | condicional* | Nombre de colonia exacto o parcial (mínimo 3 chars, case-insensitive) |
 | `municipio_id` | string | no | Filtra por ID de municipio |
+| `municipio_uid` | string | no | Filtra por UID único de municipio (ej. `09-015`) |
 | `incluir_municipio` | bool | no (default: `false`) | Si es `true`, agrega el nombre del municipio validado por `municipio_id` + `estado_id` |
 | `incluir_geo` | bool | no (default: `false`) | Si es `true`, incluye el polígono GeoJSON y el centroide |
 | `solo_geo` | bool | no (default: `false`) | Si es `true`, devuelve solo colonias que tienen geometría registrada |
@@ -36,6 +37,7 @@ Busca colonias con múltiples combinaciones de filtros.
 | 7 | `?solo_geo=true&cp=067` | Solo colonias con polígono GeoJSON |
 | 8 | `?cp=067&incluir_geo=true` | Incluye geometría en la respuesta |
 | 9 | `?cp=067&incluir_municipio=true` | Incluye el nombre del municipio en la respuesta |
+| 10 | `?cp=067&municipio_uid=09-015` | CP + UID único de municipio |
 
 ### Respuesta exitosa (200 OK)
 
@@ -43,6 +45,7 @@ Busca colonias con múltiples combinaciones de filtros.
 {
   "resultados": [
     {
+      "codigo_id": "09-015-06700-ROMA NORTE",
       "codigo": "06700",
       "nombre": "Roma Norte",
       "tipo": "Colonia",
@@ -50,6 +53,7 @@ Busca colonias con múltiples combinaciones de filtros.
       "zona": "Urbano",
       "estado_id": "09",
       "municipio_id": "015",
+      "municipio_uid": "09-015",
       "municipio_nombre": "Cuauhtémoc"
     }
   ],
@@ -68,6 +72,7 @@ Con `incluir_geo=true`:
 {
   "resultados": [
     {
+      "codigo_id": "09-015-06700-ROMA NORTE",
       "codigo": "06700",
       "nombre": "Roma Norte",
       "tipo": "Colonia",
@@ -75,6 +80,7 @@ Con `incluir_geo=true`:
       "zona": "Urbano",
       "estado_id": "09",
       "municipio_id": "015",
+      "municipio_uid": "09-015",
       "geometria": "{\"type\":\"Polygon\",\"coordinates\":[...]}",
       "centro_lon": -99.1634,
       "centro_lat": 19.4181
@@ -96,6 +102,52 @@ Con `incluir_geo=true`:
 | `400 Bad Request` | `pagina` con valor menor a 1 o no numérico | `{"error": "parametros invalidos", "detalle": "pagina debe ser un número entero mayor a 0"}` |
 | `404 Not Found` | Ninguna colonia coincide con los filtros | `{"error": "no se encontraron resultados", "detalle": "ajusta tus filtros e intenta de nuevo"}` |
 | `500 Internal Server Error` | Error inesperado de base de datos | `{"error": "error interno", "detalle": "ocurrio un error procesando la solicitud"}` |
+
+---
+
+## GET /colonias/id/:codigo_id
+
+Busca una colonia por su identificador único (`codigo_id`).
+
+### Path Parameters
+
+| Parámetro | Tipo | Requerido | Descripción |
+|---|---|---|---|
+| `codigo_id` | string | sí | ID único de colonia generado en ETL |
+
+### Query Parameters
+
+| Parámetro | Tipo | Requerido | Descripción |
+|---|---|---|---|
+| `incluir_geo` | bool | no (default: `false`) | Si es `true`, incluye `geometria`, `centro_lon` y `centro_lat` |
+| `incluir_municipio` | bool | no (default: `true`) | Si es `true`, incluye `municipio_nombre` |
+
+### Respuesta exitosa (200 OK)
+
+```json
+{
+  "resultado": {
+    "codigo_id": "09-015-06700-ROMA NORTE",
+    "codigo": "06700",
+    "nombre": "Roma Norte",
+    "tipo": "Colonia",
+    "ciudad": "Ciudad de México",
+    "zona": "Urbano",
+    "estado_id": "09",
+    "municipio_id": "015",
+    "municipio_uid": "09-015",
+    "municipio_nombre": "Cuauhtémoc"
+  }
+}
+```
+
+### Respuestas de error
+
+| Código | Causa |
+|---|---|
+| `400 Bad Request` | `incluir_geo` o `incluir_municipio` inválidos |
+| `400 Bad Request` | `codigo_id` vacío |
+| `404 Not Found` | No existe colonia para ese `codigo_id` |
 
 ---
 
@@ -128,7 +180,8 @@ Busca municipios por nombre y/o estado.
     {
       "id": "120",
       "nombre": "Zapopan",
-      "estado_id": "14"
+	  "estado_id": "14",
+	  "municipio_uid": "14-120"
     }
   ]
 }
@@ -232,3 +285,7 @@ Representan el centroide geográfico de la colonia, útil para centrar un mapa. 
 ### El campo `municipio_nombre`
 
 Se incluye solo cuando `incluir_municipio=true`. Para evitar ambigüedades, se resuelve con `municipio_id` y `estado_id` (no solo por `municipio_id`).
+
+### Los campos `codigo_id` y `municipio_uid`
+
+`codigo_id` identifica de forma única cada colonia en la base nueva. `municipio_uid` identifica de forma única al municipio y puede usarse para filtrar resultados en `/colonias`.

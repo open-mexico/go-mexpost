@@ -18,6 +18,7 @@ type MockRepo struct {
 
 	LastColoniaFilter ports.ColoniaSearchFilter
 	LastGeoFilter     ports.ReverseGeocodeFilter
+	LastCodigoID      string
 }
 
 func (m *MockRepo) SearchColonias(filter ports.ColoniaSearchFilter) ([]domain.Colonia, error) {
@@ -50,6 +51,18 @@ func (m *MockRepo) FindColoniasByPointBBox(filter ports.ReverseGeocodeFilter) ([
 		return nil, m.Err
 	}
 	return m.Colonias, nil
+}
+
+func (m *MockRepo) FindColoniaByCodigoID(codigoID string) (*domain.Colonia, error) {
+	m.LastCodigoID = codigoID
+	if m.Err != nil {
+		return nil, m.Err
+	}
+	if len(m.Colonias) == 0 {
+		return nil, nil
+	}
+	result := m.Colonias[0]
+	return &result, nil
 }
 
 func TestBuscarColonias_ErroresDeValidacion(t *testing.T) {
@@ -138,4 +151,28 @@ func TestBuscarColonias_RepoError(t *testing.T) {
 
 	_, err := servicio.BuscarColonias(ports.ColoniaSearchFilter{CP: "067"}, false)
 	assert.EqualError(t, err, "error en bd")
+}
+
+func TestBuscarColoniaPorID_ExitoSinGeo(t *testing.T) {
+	geo := `{"type":"Polygon","coordinates":[[[-99.2,19.3],[-99.1,19.3],[-99.1,19.4],[-99.2,19.4],[-99.2,19.3]]]}`
+	municipio := "Cuauhtemoc"
+	repo := &MockRepo{Colonias: []domain.Colonia{{CodigoID: "09-015-06700-RomaNorte", Codigo: "06700", Nombre: "Roma Norte", MunicipioNombre: &municipio, Geometria: &geo}}}
+	servicio := services.NewColoniaService(repo)
+
+	resultado, err := servicio.BuscarColoniaPorID(" 09-015-06700-RomaNorte ", false, false)
+	assert.NoError(t, err)
+	assert.NotNil(t, resultado)
+	assert.Equal(t, "09-015-06700-RomaNorte", resultado.CodigoID)
+	assert.Equal(t, "09-015-06700-RomaNorte", repo.LastCodigoID)
+	assert.Nil(t, resultado.Geometria)
+	assert.Nil(t, resultado.MunicipioNombre)
+}
+
+func TestBuscarColoniaPorID_NotFound(t *testing.T) {
+	repo := &MockRepo{}
+	servicio := services.NewColoniaService(repo)
+
+	_, err := servicio.BuscarColoniaPorID("id-inexistente", true, true)
+	assert.Error(t, err)
+	assert.ErrorIs(t, err, domain.ErrNotFound)
 }
