@@ -2,6 +2,7 @@ package repository
 
 import (
 	"database/sql"
+	"math"
 	"strings"
 
 	"github.com/open-mexico/go-mexpost/internal/core/domain"
@@ -34,6 +35,101 @@ const coloniaViewSelect = `
 
 type rowScanner interface {
 	Scan(dest ...any) error
+}
+
+func scanColoniaCercana(scanner rowScanner) (domain.ColoniaCercana, error) {
+	var result domain.ColoniaCercana
+	var codigoID, codigo, nombre, tipo, ciudad, zona, estadoID, municipioID sql.NullString
+	var municipioUID, municipioNombre, geometria sql.NullString
+	var minLon, minLat, maxLon, maxLat sql.NullFloat64
+	var centroLon, centroLat sql.NullFloat64
+	var dist2 sql.NullFloat64
+
+	err := scanner.Scan(
+		&codigoID,
+		&codigo,
+		&nombre,
+		&tipo,
+		&ciudad,
+		&zona,
+		&estadoID,
+		&municipioID,
+		&municipioUID,
+		&municipioNombre,
+		&geometria,
+		&minLon,
+		&minLat,
+		&maxLon,
+		&maxLat,
+		&centroLon,
+		&centroLat,
+		&dist2,
+	)
+	if err != nil {
+		return result, err
+	}
+
+	if codigoID.Valid {
+		result.Colonia.CodigoID = codigoID.String
+	}
+	if codigo.Valid {
+		result.Colonia.Codigo = codigo.String
+	}
+	if nombre.Valid {
+		result.Colonia.Nombre = nombre.String
+	}
+	if tipo.Valid {
+		result.Colonia.Tipo = tipo.String
+	}
+	if ciudad.Valid {
+		result.Colonia.Ciudad = ciudad.String
+	}
+	if zona.Valid {
+		result.Colonia.Zona = zona.String
+	}
+	if estadoID.Valid {
+		result.Colonia.EstadoID = estadoID.String
+	}
+	if municipioID.Valid {
+		result.Colonia.MunicipioID = municipioID.String
+	}
+	if municipioUID.Valid {
+		result.Colonia.MunicipioUID = municipioUID.String
+	}
+	if municipioNombre.Valid {
+		value := municipioNombre.String
+		result.Colonia.MunicipioNombre = &value
+	}
+	if geometria.Valid {
+		value := geometria.String
+		result.Colonia.Geometria = &value
+	}
+	if minLon.Valid {
+		result.Colonia.MinLon = minLon.Float64
+	}
+	if minLat.Valid {
+		result.Colonia.MinLat = minLat.Float64
+	}
+	if maxLon.Valid {
+		result.Colonia.MaxLon = maxLon.Float64
+	}
+	if maxLat.Valid {
+		result.Colonia.MaxLat = maxLat.Float64
+	}
+	if centroLon.Valid {
+		value := centroLon.Float64
+		result.Colonia.CentroLon = &value
+	}
+	if centroLat.Valid {
+		value := centroLat.Float64
+		result.Colonia.CentroLat = &value
+	}
+	if dist2.Valid && dist2.Float64 > 0 {
+		// Conversión aproximada de grados a km para exponer una métrica útil al cliente.
+		result.DistanciaKM = math.Sqrt(dist2.Float64) * 111.32
+	}
+
+	return result, nil
 }
 
 func NewSQLiteRepository(rutaDB string) (ports.ColoniaRepository, error) {
@@ -371,4 +467,92 @@ func (r *sqliteRepo) FindColoniaByCodigoID(codigoID string) (*domain.Colonia, er
 	}
 
 	return &colonia, nil
+}
+
+func (r *sqliteRepo) FindNearestColoniasByCodigoID(codigoID string, limit int) ([]domain.ColoniaCercana, error) {
+	query := `
+		WITH origen AS (
+			SELECT codigo_id, centro_lat AS lat, centro_lon AS lon
+			FROM vw_colonias_busqueda
+			WHERE codigo_id = ?
+			  AND centro_lat IS NOT NULL
+			  AND centro_lon IS NOT NULL
+		)
+		SELECT ` + coloniaViewSelect + `,
+		       ((v.centro_lat - o.lat) * (v.centro_lat - o.lat) + (v.centro_lon - o.lon) * (v.centro_lon - o.lon)) AS dist2
+		FROM vw_colonias_busqueda v
+		JOIN origen o
+		WHERE v.codigo_id <> o.codigo_id
+		  AND v.centro_lat IS NOT NULL
+		  AND v.centro_lon IS NOT NULL
+		ORDER BY dist2 ASC, v.codigo, v.colonia_nombre
+		LIMIT ?`
+
+	f, err := r.db.Query(query, codigoID, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = f.Close() }()
+
+	var resultados []domain.ColoniaCercana
+	for f.Next() {
+		row, scanErr := scanColoniaCercana(f)
+		if scanErr != nil {
+			return nil, scanErr
+		}
+		resultados = append(resultados, row)
+	}
+	if err := f.Err(); err != nil {
+		return nil, err
+	}
+
+	return resultados, nil
+}
+
+func (r *sqliteRepo) FindNearestColoniasByCP(cp string, limit int) ([]domain.ColoniaCercana, error) {
+	query := `
+		WITH origen AS (
+			SELECT codigo_id, centro_lat AS lat, centro_lon AS lon
+			FROM vw_colonias_busqueda
+			WHERE codigo = ?
+			  AND centro_lat IS NOT NULL
+			  AND centro_lon IS NOT NULL
+		),
+		distancias AS (
+			SELECT v.codigo_id,
+			       MIN((v.centro_lat - o.lat) * (v.centro_lat - o.lat) + (v.centro_lon - o.lon) * (v.centro_lon - o.lon)) AS dist2
+			FROM vw_colonias_busqueda v
+			JOIN origen o
+			WHERE v.centro_lat IS NOT NULL
+			  AND v.centro_lon IS NOT NULL
+			  AND NOT EXISTS (SELECT 1 FROM origen x WHERE x.codigo_id = v.codigo_id)
+			GROUP BY v.codigo_id
+			ORDER BY dist2 ASC
+			LIMIT ?
+		)
+		SELECT ` + coloniaViewSelect + `,
+		       d.dist2
+		FROM distancias d
+		JOIN vw_colonias_busqueda v ON v.codigo_id = d.codigo_id
+		ORDER BY d.dist2 ASC, v.codigo, v.colonia_nombre`
+
+	f, err := r.db.Query(query, cp, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = f.Close() }()
+
+	var resultados []domain.ColoniaCercana
+	for f.Next() {
+		row, scanErr := scanColoniaCercana(f)
+		if scanErr != nil {
+			return nil, scanErr
+		}
+		resultados = append(resultados, row)
+	}
+	if err := f.Err(); err != nil {
+		return nil, err
+	}
+
+	return resultados, nil
 }

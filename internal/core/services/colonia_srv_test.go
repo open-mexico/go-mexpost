@@ -14,11 +14,15 @@ type MockRepo struct {
 	Err error
 
 	Colonias   []domain.Colonia
+	Cercanas   []domain.ColoniaCercana
 	Municipios []domain.Municipio
 
 	LastColoniaFilter ports.ColoniaSearchFilter
 	LastGeoFilter     ports.ReverseGeocodeFilter
 	LastCodigoID      string
+	LastNearCodigoID  string
+	LastNearCP        string
+	LastNearLimit     int
 }
 
 func (m *MockRepo) SearchColonias(filter ports.ColoniaSearchFilter) ([]domain.Colonia, error) {
@@ -63,6 +67,24 @@ func (m *MockRepo) FindColoniaByCodigoID(codigoID string) (*domain.Colonia, erro
 	}
 	result := m.Colonias[0]
 	return &result, nil
+}
+
+func (m *MockRepo) FindNearestColoniasByCodigoID(codigoID string, limit int) ([]domain.ColoniaCercana, error) {
+	m.LastNearCodigoID = codigoID
+	m.LastNearLimit = limit
+	if m.Err != nil {
+		return nil, m.Err
+	}
+	return m.Cercanas, nil
+}
+
+func (m *MockRepo) FindNearestColoniasByCP(cp string, limit int) ([]domain.ColoniaCercana, error) {
+	m.LastNearCP = cp
+	m.LastNearLimit = limit
+	if m.Err != nil {
+		return nil, m.Err
+	}
+	return m.Cercanas, nil
 }
 
 func TestBuscarColonias_ErroresDeValidacion(t *testing.T) {
@@ -175,4 +197,52 @@ func TestBuscarColoniaPorID_NotFound(t *testing.T) {
 	_, err := servicio.BuscarColoniaPorID("id-inexistente", true, true)
 	assert.Error(t, err)
 	assert.ErrorIs(t, err, domain.ErrNotFound)
+}
+
+func TestBuscarColoniasCercanas_ValidaEntrada(t *testing.T) {
+	repo := &MockRepo{}
+	servicio := services.NewColoniaService(repo)
+
+	_, err := servicio.BuscarColoniasCercanas(ports.ColoniaNearFilter{}, false, false)
+	assert.Error(t, err)
+	assert.Equal(t, "debes proporcionar cp o codigo_id", err.Error())
+
+	_, err = servicio.BuscarColoniasCercanas(ports.ColoniaNearFilter{CP: "06700", CodigoID: "abc"}, false, false)
+	assert.Error(t, err)
+	assert.Equal(t, "usa solo uno: cp o codigo_id", err.Error())
+
+	_, err = servicio.BuscarColoniasCercanas(ports.ColoniaNearFilter{CP: "067"}, false, false)
+	assert.Error(t, err)
+	assert.Equal(t, "cp invalido: para cercania usa 5 digitos", err.Error())
+}
+
+func TestBuscarColoniasCercanas_ExitoPorCodigoID(t *testing.T) {
+	repo := &MockRepo{Cercanas: []domain.ColoniaCercana{{
+		Colonia:     domain.Colonia{CodigoID: "09-015-06710-ROMA", Codigo: "06710", Nombre: "Roma Sur"},
+		DistanciaKM: 0.42,
+	}}}
+	servicio := services.NewColoniaService(repo)
+
+	resultados, err := servicio.BuscarColoniasCercanas(ports.ColoniaNearFilter{CodigoID: " 09-015-06700-ROMA ", Limit: 10}, false, false)
+	assert.NoError(t, err)
+	assert.Len(t, resultados, 1)
+	assert.Equal(t, "09-015-06700-ROMA", repo.LastNearCodigoID)
+	assert.Equal(t, 10, repo.LastNearLimit)
+	assert.Nil(t, resultados[0].Colonia.MunicipioNombre)
+}
+
+func TestBuscarColoniasCercanas_ExitoPorCP(t *testing.T) {
+	geo := `{"type":"Polygon","coordinates":[[[0,0],[1,0],[1,1],[0,1],[0,0]]]}`
+	municipio := "Cuauhtemoc"
+	repo := &MockRepo{Cercanas: []domain.ColoniaCercana{{
+		Colonia: domain.Colonia{CodigoID: "09-015-06710-ROMA", Codigo: "06710", Nombre: "Roma Sur", Geometria: &geo, MunicipioNombre: &municipio},
+	}}}
+	servicio := services.NewColoniaService(repo)
+
+	resultados, err := servicio.BuscarColoniasCercanas(ports.ColoniaNearFilter{CP: "06700", Limit: -1}, false, true)
+	assert.NoError(t, err)
+	assert.Equal(t, "06700", repo.LastNearCP)
+	assert.Equal(t, ports.DefaultNearLimit, repo.LastNearLimit)
+	assert.Nil(t, resultados[0].Colonia.Geometria)
+	assert.NotNil(t, resultados[0].Colonia.MunicipioNombre)
 }

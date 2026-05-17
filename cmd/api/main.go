@@ -39,6 +39,7 @@ func main() {
 
 	router.GET("/colonias", apiHandler.BuscarColonias)
 	router.GET("/colonias/id/:codigo_id", apiHandler.BuscarColoniaPorID)
+	router.GET("/colonias/cercanas", apiHandler.BuscarColoniasCercanas)
 	router.GET("/municipios", apiHandler.BuscarMunicipios)
 	router.GET("/coordenadas", apiHandler.BuscarCoordenadas)
 

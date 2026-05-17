@@ -35,6 +35,12 @@ type Colonia struct {
 	CentroLat       *float64
 }
 
+// ColoniaCercana representa una colonia candidata junto con su distancia a la referencia.
+type ColoniaCercana struct {
+	Colonia     Colonia
+	DistanciaKM float64
+}
+
 // Municipio representa los municipios del catálogo nacional.
 type Municipio struct {
 	ID           string

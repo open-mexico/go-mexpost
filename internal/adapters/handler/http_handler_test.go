@@ -16,9 +16,11 @@ import (
 type MockService struct {
 	Err               error
 	Colonias          []domain.Colonia
+	Cercanas          []domain.ColoniaCercana
 	Municipio         []domain.Municipio
 	LastColoniaFilter ports.ColoniaSearchFilter
 	LastCodigoID      string
+	LastNearFilter    ports.ColoniaNearFilter
 }
 
 func (m *MockService) BuscarColonias(filter ports.ColoniaSearchFilter, incluirGeo bool) ([]domain.Colonia, error) {
@@ -69,6 +71,16 @@ func (m *MockService) BuscarColoniaPorID(codigoID string, incluirGeo bool, inclu
 		return nil, domain.ErrNotFound
 	}
 	return &m.Colonias[0], nil
+}
+
+func (m *MockService) BuscarColoniasCercanas(filter ports.ColoniaNearFilter, incluirGeo bool, incluirMunicipio bool) ([]domain.ColoniaCercana, error) {
+	m.LastNearFilter = filter
+	_ = incluirGeo
+	_ = incluirMunicipio
+	if m.Err != nil {
+		return nil, m.Err
+	}
+	return m.Cercanas, nil
 }
 
 func TestBuscarColonias_Status400(t *testing.T) {
@@ -316,4 +328,56 @@ func TestBuscarColoniaPorID_Status400BoolInvalido(t *testing.T) {
 
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 	assert.Contains(t, w.Body.String(), "incluir_geo debe ser true o false")
+}
+
+func TestBuscarColoniasCercanas_Status200(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	mockService := &MockService{Cercanas: []domain.ColoniaCercana{{
+		Colonia:     domain.Colonia{CodigoID: "09-015-06710-ROMA", Codigo: "06710", Nombre: "Roma Sur", MunicipioUID: "09-015"},
+		DistanciaKM: 0.5,
+	}}}
+	manejador := handler.NewHttpHandler(mockService)
+
+	router := gin.New()
+	router.GET("/colonias/cercanas", manejador.BuscarColoniasCercanas)
+
+	req, _ := http.NewRequest("GET", "/colonias/cercanas?codigo_id=09-015-06700-ROMA&limit=5", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, "09-015-06700-ROMA", mockService.LastNearFilter.CodigoID)
+	assert.Equal(t, 5, mockService.LastNearFilter.Limit)
+	assert.Contains(t, w.Body.String(), "\"distancia_km\":0.5")
+	assert.Contains(t, w.Body.String(), "\"codigo_id\":\"09-015-06710-ROMA\"")
+}
+
+func TestBuscarColoniasCercanas_Status400LimitInvalido(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	manejador := handler.NewHttpHandler(&MockService{})
+
+	router := gin.New()
+	router.GET("/colonias/cercanas", manejador.BuscarColoniasCercanas)
+
+	req, _ := http.NewRequest("GET", "/colonias/cercanas?cp=06700&limit=abc", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+	assert.Contains(t, w.Body.String(), "limit debe ser un número entero positivo")
+}
+
+func TestBuscarColoniasCercanas_Status400BoolInvalido(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	manejador := handler.NewHttpHandler(&MockService{})
+
+	router := gin.New()
+	router.GET("/colonias/cercanas", manejador.BuscarColoniasCercanas)
+
+	req, _ := http.NewRequest("GET", "/colonias/cercanas?cp=06700&incluir_municipio=talvez", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+	assert.Contains(t, w.Body.String(), "incluir_municipio debe ser true o false")
 }

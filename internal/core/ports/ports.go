@@ -15,11 +15,20 @@ type ColoniaSearchFilter struct {
 }
 
 const (
-	DefaultLimit    = 100
-	DefaultLimitGeo = 50
-	MaxLimit        = 500
-	MaxLimitGeo     = 100
+	DefaultLimit     = 100
+	DefaultLimitGeo  = 50
+	MaxLimit         = 500
+	MaxLimitGeo      = 100
+	DefaultNearLimit = 20
+	MaxNearLimit     = 100
 )
+
+// ColoniaNearFilter define parámetros para /colonias/cercanas.
+type ColoniaNearFilter struct {
+	CP       string
+	CodigoID string
+	Limit    int
+}
 
 // MunicipioSearchFilter define combinaciones de búsqueda para /municipios.
 type MunicipioSearchFilter struct {
@@ -39,6 +48,8 @@ type ColoniaRepository interface {
 	SearchColonias(filter ColoniaSearchFilter) ([]domain.Colonia, error)
 	CountColonias(filter ColoniaSearchFilter) (int, error)
 	FindColoniaByCodigoID(codigoID string) (*domain.Colonia, error)
+	FindNearestColoniasByCodigoID(codigoID string, limit int) ([]domain.ColoniaCercana, error)
+	FindNearestColoniasByCP(cp string, limit int) ([]domain.ColoniaCercana, error)
 	SearchMunicipios(filter MunicipioSearchFilter) ([]domain.Municipio, error)
 	FindColoniasByPointBBox(filter ReverseGeocodeFilter) ([]domain.Colonia, error)
 }
@@ -48,6 +59,7 @@ type ColoniaService interface {
 	BuscarColonias(filter ColoniaSearchFilter, incluirGeo bool) ([]domain.Colonia, error)
 	ContarColonias(filter ColoniaSearchFilter) (int, error)
 	BuscarColoniaPorID(codigoID string, incluirGeo bool, incluirMunicipio bool) (*domain.Colonia, error)
+	BuscarColoniasCercanas(filter ColoniaNearFilter, incluirGeo bool, incluirMunicipio bool) ([]domain.ColoniaCercana, error)
 	BuscarMunicipios(filter MunicipioSearchFilter) ([]domain.Municipio, error)
 	BuscarPorCoordenadas(filter ReverseGeocodeFilter, incluirGeo bool) (*domain.Colonia, error)
 }

@@ -49,6 +49,7 @@ Proveer una API REST robusta, eficiente y de nivel empresarial para desarrollado
   - Por Nombre de Colonia exacto o parcial (ignorando mayúsculas y minúsculas).
   - Filtros combinados por Estado y Municipio (`municipio_id` o `municipio_uid`).
 - 🆔 **Lookup por ID único de colonia (`codigo_id`):** Endpoint directo para resolver una colonia exacta sin ambigüedades.
+- 📌 **Colonias Cercanas:** Obtén colonias vecinas ordenadas de la más cercana a la más lejana usando `codigo_id` o `cp`.
 - 📄 **Paginación completa:** Todos los resultados de `/colonias` incluyen `pagina`, `total_paginas`, `pagina_anterior` y `pagina_siguiente` para navegar grandes conjuntos de datos.
 - 🛡️ **Rate Limiting por IP:** Protección integrada contra abuso mediante token bucket. Configurable con variables de entorno (`RATE_LIMIT`, `RATE_BURST`) sin recompilar.
 - 🗺️ **Soporte Geoespacial (GeoJSON):** Capacidad de descargar una versión espacial de la base de datos que incluye los polígonos de cada código postal.
@@ -124,6 +125,9 @@ curl "http://localhost:8080/colonias?cp=067&incluir_municipio=true"
 
 # Búsqueda directa por ID único de colonia
 curl "http://localhost:8080/colonias/id/09-015-06700-ROMA%20NORTE"
+
+# Colonias cercanas por ID único
+curl "http://localhost:8080/colonias/cercanas?codigo_id=09-015-06700-ROMA%20NORTE&limit=10"
 ```
 
 ### 5. Variables de entorno (opcionales)

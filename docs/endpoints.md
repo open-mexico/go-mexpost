@@ -151,6 +151,62 @@ Busca una colonia por su identificador único (`codigo_id`).
 
 ---
 
+## GET /colonias/cercanas
+
+Devuelve colonias cercanas a una referencia y las ordena de la más cercana a la más lejana.
+
+Para la explicacion tecnica completa del algoritmo, precision y criterios de ordenamiento, revisa: [/colonias-cercanas](/colonias-cercanas).
+
+La referencia puede enviarse por `codigo_id` (colonia única) o por `cp` (grupo de colonias del mismo código postal).
+
+### Query Parameters
+
+| Parámetro | Tipo | Requerido | Descripción |
+|---|---|---|---|
+| `codigo_id` | string | condicional* | ID único de colonia de referencia |
+| `cp` | string | condicional* | Código postal de referencia (para cercanía se requiere exacto de 5 dígitos) |
+| `limit` | int | no | Máximo de resultados (default: `20`, máx: `100`) |
+| `incluir_municipio` | bool | no (default: `true`) | Si es `true`, agrega `municipio_nombre` |
+| `incluir_geo` | bool | no (default: `false`) | Si es `true`, agrega `geometria`, `centro_lon`, `centro_lat` |
+
+\* Debes enviar exactamente uno: `codigo_id` o `cp`.
+
+### Respuesta exitosa (200 OK)
+
+```json
+{
+  "resultados": [
+    {
+      "codigo_id": "09-015-06710-ROMA SUR",
+      "codigo": "06710",
+      "nombre": "Roma Sur",
+      "tipo": "Colonia",
+      "ciudad": "Ciudad de México",
+      "zona": "Urbano",
+      "estado_id": "09",
+      "municipio_id": "015",
+      "municipio_uid": "09-015",
+      "municipio_nombre": "Cuauhtémoc",
+      "distancia_km": 0.42
+    }
+  ],
+  "total": 1,
+  "limit": 20
+}
+```
+
+### Respuestas de error
+
+| Código | Causa |
+|---|---|
+| `400 Bad Request` | No envías `cp` ni `codigo_id` |
+| `400 Bad Request` | Envías ambos (`cp` y `codigo_id`) |
+| `400 Bad Request` | `cp` inválido para cercanía (debe tener 5 dígitos) |
+| `400 Bad Request` | `limit` inválido |
+| `404 Not Found` | No hay referencia válida o no hay colonias cercanas disponibles |
+
+---
+
 ## GET /municipios
 
 Busca municipios por nombre y/o estado.

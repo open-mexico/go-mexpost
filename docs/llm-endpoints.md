@@ -18,6 +18,7 @@ Source references used:
 - Core endpoints:
   - `GET /colonias`
   - `GET /colonias/id/:codigo_id`
+  - `GET /colonias/cercanas`
   - `GET /municipios`
   - `GET /coordenadas`
 
@@ -210,6 +211,50 @@ Direct lookup by unique colonia ID.
 - `400` invalid booleans or empty `codigo_id`
 - `404` no colonia for `codigo_id`
 
+## 3.5 `GET /colonias/cercanas`
+
+Returns nearby colonias ordered from nearest to farthest.
+
+### Query parameters
+
+- `codigo_id: string` (conditional*)
+- `cp: string` (conditional*, must be exact 5 digits for this endpoint)
+- `limit: int` (optional, default `20`, max `100`)
+- `incluir_municipio: bool` (optional, default `true`)
+- `incluir_geo: bool` (optional, default `false`)
+
+\* Exactly one of `codigo_id` or `cp` must be sent.
+
+### Response shape (success)
+
+```json
+{
+  "resultados": [
+    {
+      "codigo_id": "09-015-06710-ROMA SUR",
+      "codigo": "06710",
+      "nombre": "Roma Sur",
+      "tipo": "Colonia",
+      "ciudad": "Ciudad de Mexico",
+      "zona": "Urbano",
+      "estado_id": "09",
+      "municipio_id": "015",
+      "municipio_uid": "09-015",
+      "municipio_nombre": "Cuauhtemoc",
+      "distancia_km": 0.42
+    }
+  ],
+  "total": 1,
+  "limit": 20
+}
+```
+
+### Error patterns
+
+- `400` missing reference (`cp`/`codigo_id`) or both sent
+- `400` invalid cp or limit
+- `404` no nearby results for reference
+
 ## 4. Normalized Types for Client Code
 
 ```ts
@@ -256,6 +301,16 @@ export type CoordenadasResponse = {
 
 export type ColoniaPorIDResponse = {
   resultado: Colonia;
+};
+
+export type ColoniaCercana = Colonia & {
+  distancia_km: number;
+};
+
+export type ColoniasCercanasResponse = {
+  resultados: ColoniaCercana[];
+  total: number;
+  limit: number;
 };
 
 export type ApiError = {

@@ -43,6 +43,11 @@ type municipioResponse struct {
 	MunicipioUID string `json:"municipio_uid,omitempty"`
 }
 
+type coloniaCercanaResponse struct {
+	coloniaResponse
+	DistanciaKM float64 `json:"distancia_km"`
+}
+
 func (h *HttpHandler) BuscarColonias(c *gin.Context) {
 	incluirGeo, ok := parseBoolQuery(c, "incluir_geo", false)
 	if !ok {
@@ -184,6 +189,52 @@ func (h *HttpHandler) BuscarColoniaPorID(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"resultado": toColoniaResponse(*colonia, incluirGeo, incluirMunicipio)})
+}
+
+func (h *HttpHandler) BuscarColoniasCercanas(c *gin.Context) {
+	incluirGeo, ok := parseBoolQuery(c, "incluir_geo", false)
+	if !ok {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "incluir_geo debe ser true o false"})
+		return
+	}
+
+	incluirMunicipio, ok := parseBoolQuery(c, "incluir_municipio", true)
+	if !ok {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "incluir_municipio debe ser true o false"})
+		return
+	}
+
+	limit, ok := parseIntQuery(c, "limit", ports.DefaultNearLimit)
+	if !ok {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "limit debe ser un número entero positivo"})
+		return
+	}
+
+	filtro := ports.ColoniaNearFilter{
+		CP:       c.Query("cp"),
+		CodigoID: c.Query("codigo_id"),
+		Limit:    limit,
+	}
+
+	cercanas, err := h.service.BuscarColoniasCercanas(filtro, incluirGeo, incluirMunicipio)
+	if err != nil {
+		h.writeError(c, err)
+		return
+	}
+
+	resp := make([]coloniaCercanaResponse, 0, len(cercanas))
+	for _, item := range cercanas {
+		resp = append(resp, coloniaCercanaResponse{
+			coloniaResponse: toColoniaResponse(item.Colonia, incluirGeo, incluirMunicipio),
+			DistanciaKM:     item.DistanciaKM,
+		})
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"resultados": resp,
+		"total":      len(resp),
+		"limit":      limit,
+	})
 }
 
 func (h *HttpHandler) BuscarCoordenadas(c *gin.Context) {

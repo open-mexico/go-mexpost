@@ -98,6 +98,64 @@ func (s *coloniaService) BuscarColoniaPorID(codigoID string, incluirGeo bool, in
 	return colonia, nil
 }
 
+func (s *coloniaService) BuscarColoniasCercanas(filter ports.ColoniaNearFilter, incluirGeo bool, incluirMunicipio bool) ([]domain.ColoniaCercana, error) {
+	filter.CP = strings.TrimSpace(filter.CP)
+	filter.CodigoID = strings.TrimSpace(filter.CodigoID)
+
+	if filter.CP == "" && filter.CodigoID == "" {
+		return nil, domain.ValidationError{Message: "debes proporcionar cp o codigo_id"}
+	}
+	if filter.CP != "" && filter.CodigoID != "" {
+		return nil, domain.ValidationError{Message: "usa solo uno: cp o codigo_id"}
+	}
+
+	if filter.CP != "" {
+		if len(filter.CP) != 5 {
+			return nil, domain.ValidationError{Message: "cp invalido: para cercania usa 5 digitos"}
+		}
+		if !isOnlyDigits(filter.CP) {
+			return nil, domain.ValidationError{Message: "cp invalido: solo se permiten digitos"}
+		}
+	}
+
+	if filter.Limit <= 0 {
+		filter.Limit = ports.DefaultNearLimit
+	} else if filter.Limit > ports.MaxNearLimit {
+		filter.Limit = ports.MaxNearLimit
+	}
+
+	var (
+		resultados []domain.ColoniaCercana
+		err        error
+	)
+	if filter.CodigoID != "" {
+		resultados, err = s.repo.FindNearestColoniasByCodigoID(filter.CodigoID, filter.Limit)
+	} else {
+		resultados, err = s.repo.FindNearestColoniasByCP(filter.CP, filter.Limit)
+	}
+	if err != nil {
+		return nil, err
+	}
+	if len(resultados) == 0 {
+		return nil, domain.ErrNotFound
+	}
+
+	if !incluirGeo || !incluirMunicipio {
+		for i := range resultados {
+			if !incluirGeo {
+				resultados[i].Colonia.Geometria = nil
+				resultados[i].Colonia.CentroLat = nil
+				resultados[i].Colonia.CentroLon = nil
+			}
+			if !incluirMunicipio {
+				resultados[i].Colonia.MunicipioNombre = nil
+			}
+		}
+	}
+
+	return resultados, nil
+}
+
 func (s *coloniaService) BuscarMunicipios(filter ports.MunicipioSearchFilter) ([]domain.Municipio, error) {
 	filter.Nombre = strings.ToLower(strings.TrimSpace(filter.Nombre))
 	filter.EstadoID = strings.TrimSpace(filter.EstadoID)

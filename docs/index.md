@@ -95,6 +95,10 @@ Si usarás agentes LLM para contribuir código en este repositorio:
 make verify
 ```
 
+## Documentacion tecnica destacada
+
+- [Como funciona /colonias/cercanas](/colonias-cercanas)
+
 ## Ejemplos rápidos
 
 ```
@@ -102,6 +106,7 @@ GET /colonias?cp=067
 GET /colonias?nombre=Roma&incluir_geo=true
 GET /colonias?cp=067&nombre=Roma&municipio_id=014
 GET /colonias?solo_geo=true&cp=067
+GET /colonias/cercanas?codigo_id=09-015-06700-ROMA%20NORTE&limit=10
 
 GET /municipios?estado_id=14
 GET /municipios?nombre=Zapopan
