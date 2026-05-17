@@ -10,8 +10,8 @@ import (
 )
 
 const (
-	urlPostal = "https://github.com/open-mexico/sepomex-db-generator/releases/download/v1.1.1/db_postal.sqlite.zip"
-	urlGeo    = "https://github.com/open-mexico/sepomex-db-generator/releases/download/v1.1.1/db_geo.sqlite.zip"
+	urlPostal = "https://github.com/open-mexico/sepomex-db-generator/releases/download/v1.2.0/db_postal.sqlite.zip"
+	urlGeo    = "https://github.com/open-mexico/sepomex-db-generator/releases/download/v1.2.0/db_geo.sqlite.zip"
 )
 
 func main() {
