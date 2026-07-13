@@ -132,16 +132,37 @@ curl "http://localhost:8080/colonias/cercanas?codigo_id=09-015-06700-ROMA%20NORT
 
 ### 5. Variables de entorno (opcionales)
 
-| Variable     | Default | Descripción                               |
-| ------------ | ------- | ----------------------------------------- |
-| `PORT`       | `8080`  | Puerto en el que escucha el servidor      |
-| `RATE_LIMIT` | `10`    | Solicitudes por segundo permitidas por IP |
-| `RATE_BURST` | `30`    | Ráfaga máxima instantánea por IP          |
+| Variable               | Default | Descripción                                                                                   |
+| ---------------------- | ------- | --------------------------------------------------------------------------------------------- |
+| `PORT`                 | `8080`  | Puerto en el que escucha el servidor                                                          |
+| `RATE_LIMIT`           | `10`    | Solicitudes por segundo permitidas por IP                                                     |
+| `RATE_BURST`           | `30`    | Ráfaga máxima instantánea por IP                                                              |
+| `CORS_ALLOWED_ORIGINS` | `*`     | Orígenes permitidos (CORS), separados por coma. Ejemplo: `https://midominio.com,http://localhost:3000` |
 
 ```bash
 # Ejemplo con configuración personalizada
 PORT=3000 RATE_LIMIT=5 RATE_BURST=15 go run ./cmd/api/main.go
 ```
+
+---
+
+### 🐳 Opción C: Despliegue en Producción (Docker)
+
+Si deseas usar Go-MexPost en producción sin configurar Go, puedes usar nuestras imágenes Docker públicas. La base de datos viene embebida y optimizada.
+
+**1. Versión Ligera (Solo datos, recomendada para formularios):**
+```bash
+docker pull macarthuror/go-mexpost:lite
+docker run -d -p 8080:8080 --name go-mexpost-api macarthuror/go-mexpost:lite
+```
+
+**2. Versión Espacial (Incluye polígonos GeoJSON para mapas):**
+```bash
+docker pull macarthuror/go-mexpost:geo
+docker run -d -p 8080:8080 --name go-mexpost-api macarthuror/go-mexpost:geo
+```
+
+*(Para desarrolladores: Puedes compilar estas imágenes tú mismo localmente usando `make docker-lite` o `make docker-geo`).*
 
 🛠️ Herramientas y Tecnologías
 `Golang` (1.26+): Lenguaje principal.
