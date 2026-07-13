@@ -66,13 +66,14 @@ Configurar el proyecto en tu máquina local es increíblemente sencillo gracias 
 
 Si no deseas instalar Go o compilar el código por tu cuenta, hemos preparado versiones precompiladas listas para usarse. ¡No requieren configuración!
 
-**Paso 1:** Ve a nuestra página de [Releases](https://github.com/open-mexico/go-mexpost/releases).
-**Paso 2:** Descarga el archivo `.zip` correspondiente a tu sistema operativo (`windows`, `mac`, o `linux`).
-**Paso 3:** Descomprime el archivo. Asegúrate de que tanto el ejecutable como el archivo de la base de datos (`mapa.db`) estén en la misma carpeta.
-**Paso 4:** Inicia el servidor:
+- **Paso 1:** Ve a nuestra página de [Releases](https://github.com/open-mexico/go-mexpost/releases).
+- **Paso 2:** Descarga el archivo `.zip` correspondiente a tu sistema operativo (`windows`, `mac`, o `linux`).
+- **Paso 3:** Descomprime el archivo. Asegúrate de que tanto el ejecutable como el archivo de la base de datos (`mapa.db`) estén en la misma carpeta.
+- **Paso 4:** Inicia el servidor:
 
-- **🪟 Windows:** Haz doble clic sobre el archivo `go-mexpost-api.exe`.
-- **🐧 Linux / 🍏 Mac:** Abre una terminal en esa carpeta, otorga permisos de ejecución y arráncalo con estos comandos:
+
+  - **🪟 Windows:** Haz doble clic sobre el archivo `go-mexpost-api.exe`.
+  - **🐧 Linux / 🍏 Mac:** Abre una terminal en esa carpeta, otorga permisos de ejecución y arráncalo con estos comandos:
   ```bash
   chmod +x go-mexpost-api
   ./go-mexpost-api
