@@ -99,3 +99,13 @@ A change is considered done only if:
 - docs/pruebas.md
 - docs/configuracion.md
 - docs/llm-endpoints.md
+
+## 10. Estrategia de Dockerización
+
+- **Un solo Dockerfile parametrizado:** Utiliza argumentos (`ARG`) para controlar las variables de compilación en lugar de crear múltiples archivos `Dockerfile` (ej. `Dockerfile.lite`, `Dockerfile.geo`).
+- **Autonomía en el Build:** El contenedor debe generar su propia base de datos embebida durante la etapa de construcción (`builder stage`) usando `go run ./cmd/setup/main.go`. No asumas que la base de datos `mapa.db` existe en la máquina anfitriona.
+- **Registro en el Makefile:** Todas las variantes de construcción de contenedores deben documentarse como targets explícitos en el `Makefile` (ej. `make docker-lite`, `make docker-geo`).
+
+## 11. Contexto de Usuario
+- **Usuario Oficial:** El usuario oficial para Docker Hub, GitHub y cualquier otro servicio externo es `macarthuror`. 
+- **Documentación y Comandos:** Cuando se generen comandos de terminal, `Dockerfile`, scripts o documentación que requieran un nombre de usuario o espacio de nombres, utiliza siempre `macarthuror` (ej. `docker pull macarthuror/go-mexpost:lite`) en lugar de placeholders genéricos.

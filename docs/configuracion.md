@@ -95,9 +95,9 @@ Al ser CGO-free (gracias a `modernc.org/sqlite`), el binario resultante no tiene
 
 ---
 
-## Estructura de `cmd/api/main.go`
+## Estructura de `cmd/api/main.go` (Production-Ready)
 
-El punto de entrada del servidor realiza el **Wiring** (inyección de dependencias manual) en orden:
+El punto de entrada del servidor está optimizado para producción con apagado elegante (Graceful Shutdown) y middleware avanzado. El **Wiring** (inyección de dependencias) ocurre en el siguiente orden:
 
 ```go
 // 1. Repositorio — conecta con mapa.db
@@ -109,15 +109,44 @@ servicio := services.NewColoniaService(repo)
 // 3. Handler — recibe el servicio como interfaz
 apiHandler := handler.NewHttpHandler(servicio)
 
-// 4. Router Gin — registra middlewares y endpoints
-router := gin.Default()
+// 4. Router Gin — en modo "New" (sin middlewares globales por defecto)
+router := gin.New()
 router.SetTrustedProxies(nil)
-router.Use(handler.RateLimitMiddleware(rateLimit, rateBurst)) // token bucket por IP
+
+// 5. Middlewares de Producción
+router.Use(gin.Recovery())                                  // Previene caídas por panics
+router.Use(handler.SlogMiddleware(logger))                  // Logs estructurados en JSON
+router.Use(cors.New(corsConfig))                            // CORS (Controlado por CORS_ALLOWED_ORIGINS)
+router.Use(gzip.Gzip(gzip.DefaultCompression))              // Compresión GZIP automática
+router.Use(handler.RateLimitMiddleware(rateLimit, burst))   // Token bucket por IP
+
+// 6. Endpoints
+router.GET("/health",      apiHandler.HealthCheck)
 router.GET("/colonias",    apiHandler.BuscarColonias)
 router.GET("/municipios",  apiHandler.BuscarMunicipios)
 router.GET("/coordenadas", apiHandler.BuscarCoordenadas)
 
-router.Run(":" + port)
+// 7. Servidor HTTP Resiliente (Timeouts para prevenir ataques Slowloris)
+srv := &http.Server{
+    Addr:         ":" + port,
+    Handler:      router,
+    ReadTimeout:  5 * time.Second,
+    WriteTimeout: 10 * time.Second,
+    IdleTimeout:  120 * time.Second,
+}
+
+// 8. Graceful Shutdown (Intercepta SIGINT y SIGTERM)
+// ...
+```
+
+### Configuración CORS
+
+Por defecto, la API permite peticiones desde cualquier origen (`*`) para que desarrolladores frontend puedan consumirla sin bloqueos de navegador. 
+En **Producción**, deberías restringir esto para proteger tu infraestructura usando la variable de entorno `CORS_ALLOWED_ORIGINS`:
+
+```bash
+# Ejemplo estricto para producción
+CORS_ALLOWED_ORIGINS=https://mi-app.com,https://dashboard.mi-app.com go run ./cmd/api/main.go
 ```
 
 Las dependencias se inyectan como **interfaces**, no como implementaciones concretas. Esto significa que se puede reemplazar SQLite por otra base de datos implementando `ports.ColoniaRepository` sin tocar el servicio ni los handlers.

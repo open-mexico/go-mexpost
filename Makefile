@@ -11,6 +11,8 @@ help:
 	@echo "  make lint        - Ejecuta golangci-lint"
 	@echo "  make verify      - Ejecuta fmt-check + build + test + lint"
 	@echo "  make docs-build  - Compila documentacion (VitePress)"
+	@echo "  make docker-lite - Construye imagen Docker ligera (sin polígonos)"
+	@echo "  make docker-geo  - Construye imagen Docker espacial (con polígonos)"
 
 fmt:
 	@gofmt -w $(GO_DIRS)
@@ -32,3 +34,11 @@ verify: fmt-check build test lint
 
 docs-build:
 	@pnpm docs:build
+
+docker-lite:
+	@echo "Construyendo Docker LITE (sin geometrías)..."
+	@docker build --build-arg INCLUDE_GEO=false -t go-mexpost:lite .
+
+docker-geo:
+	@echo "Construyendo Docker GEO (con geometrías)... Esto puede tomar varios minutos."
+	@docker build --build-arg INCLUDE_GEO=true -t go-mexpost:geo .

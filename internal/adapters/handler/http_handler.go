@@ -358,3 +358,8 @@ func toColoniaResponse(col domain.Colonia, incluirGeo bool, incluirMunicipio boo
 
 	return resp
 }
+
+// HealthCheck returns a 200 OK status to indicate the API is running.
+func (h *HttpHandler) HealthCheck(c *gin.Context) {
+	c.JSON(http.StatusOK, gin.H{"status": "ok"})
+}

@@ -381,3 +381,18 @@ func TestBuscarColoniasCercanas_Status400BoolInvalido(t *testing.T) {
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 	assert.Contains(t, w.Body.String(), "incluir_municipio debe ser true o false")
 }
+
+func TestHealthCheck_Status200(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	manejador := handler.NewHttpHandler(&MockService{})
+
+	router := gin.New()
+	router.GET("/health", manejador.HealthCheck)
+
+	req, _ := http.NewRequest("GET", "/health", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Contains(t, w.Body.String(), "\"status\":\"ok\"")
+}

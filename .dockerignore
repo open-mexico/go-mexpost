@@ -1,0 +1,23 @@
+# Git
+.git
+.gitignore
+.github
+
+# Entornos de desarrollo
+.vscode
+.devcontainer
+
+# Dependencias locales (node)
+node_modules
+pnpm-lock.yaml
+pnpm-workspace.yaml
+package.json
+
+# Archivos de build y temporales
+build/
+docs/
+*.md
+
+# Base de datos local (NO queremos copiarla del anfitrión, la generará Docker)
+mapa.db
+
