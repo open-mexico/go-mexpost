@@ -37,8 +37,8 @@ docs-build:
 
 docker-lite:
 	@echo "Construyendo Docker LITE (sin geometrías)..."
-	@docker build --build-arg INCLUDE_GEO=false -t go-mexpost:lite .
+	@docker build --platform linux/amd64 --build-arg INCLUDE_GEO=false -t go-mexpost:lite .
 
 docker-geo:
 	@echo "Construyendo Docker GEO (con geometrías)... Esto puede tomar varios minutos."
-	@docker build --build-arg INCLUDE_GEO=true -t go-mexpost:geo .
+	@docker build --platform linux/amd64 --build-arg INCLUDE_GEO=true -t go-mexpost:geo .
