@@ -2,6 +2,7 @@ package repository
 
 import (
 	"database/sql"
+	"fmt"
 	"math"
 	"strings"
 
@@ -133,7 +134,9 @@ func scanColoniaCercana(scanner rowScanner) (domain.ColoniaCercana, error) {
 }
 
 func NewSQLiteRepository(rutaDB string) (ports.ColoniaRepository, error) {
-	db, err := sql.Open("sqlite", rutaDB)
+	// Abrimos en modo solo lectura para evitar errores en entornos serverless/read-only (ej. DO App Platform)
+	dsn := fmt.Sprintf("file:%s?mode=ro", rutaDB)
+	db, err := sql.Open("sqlite", dsn)
 	if err != nil {
 		return nil, err
 	}

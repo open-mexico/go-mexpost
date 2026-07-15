@@ -25,7 +25,11 @@ func main() {
 	slog.SetDefault(logger)
 
 	// 1. Repositorio
-	repo, err := repository.NewSQLiteRepository("./mapa.db")
+	dbPath := os.Getenv("DB_PATH")
+	if dbPath == "" {
+		dbPath = "./mapa.db"
+	}
+	repo, err := repository.NewSQLiteRepository(dbPath)
 	if err != nil {
 		logger.Error("No se encontró la base de datos 'mapa.db'. Ejecuta 'go run ./cmd/setup/main.go' primero", "error", err)
 		os.Exit(1)
