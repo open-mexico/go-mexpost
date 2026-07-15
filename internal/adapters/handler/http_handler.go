@@ -3,6 +3,7 @@ package handler
 import (
 	"errors"
 	"fmt"
+	"log/slog"
 	"math"
 	"net/http"
 	"strconv"
@@ -295,6 +296,7 @@ func (h *HttpHandler) writeError(c *gin.Context, err error) {
 		return
 	}
 
+	slog.Error("Error interno procesando la solicitud", "error", err)
 	c.JSON(http.StatusInternalServerError, gin.H{
 		"error":   "error interno",
 		"detalle": "ocurrio un error procesando la solicitud",
