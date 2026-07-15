@@ -29,6 +29,9 @@ FROM alpine:latest
 # Añadimos certificados de seguridad
 RUN apk --no-cache add ca-certificates
 
+# Crear usuario y grupo sin privilegios
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+
 WORKDIR /app
 
 # Copiamos el binario compilado desde la etapa 1
@@ -36,6 +39,12 @@ COPY --from=builder /app/go-mexpost-api .
 
 # Copiamos la base de datos generada desde la etapa 1
 COPY --from=builder /app/mapa.db .
+
+# Dar propiedad al usuario appuser
+RUN chown -R appuser:appgroup /app
+
+# Cambiamos al usuario sin privilegios
+USER appuser
 
 # Exponemos el puerto
 EXPOSE 8080
