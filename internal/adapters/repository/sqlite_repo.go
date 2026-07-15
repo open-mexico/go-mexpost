@@ -12,10 +12,11 @@ import (
 )
 
 type sqliteRepo struct {
-	db *sql.DB
+	db            *sql.DB
+	coloniaSelect string
 }
 
-const coloniaViewSelect = `
+const coloniaViewSelectGeo = `
 	v.codigo_id,
 	v.codigo,
 	v.colonia_nombre,
@@ -33,6 +34,25 @@ const coloniaViewSelect = `
 	v.max_lat,
 	((v.min_lon + v.max_lon) / 2.0) AS centro_lon,
 	((v.min_lat + v.max_lat) / 2.0) AS centro_lat`
+
+const coloniaViewSelectLite = `
+	v.codigo_id,
+	v.codigo,
+	v.colonia_nombre,
+	v.tipo,
+	v.ciudad,
+	v.zona,
+	v.estado_id,
+	v.municipio_id,
+	v.municipio_uid,
+	v.municipio_nombre,
+	NULL AS geometria,
+	NULL AS min_lon,
+	NULL AS min_lat,
+	NULL AS max_lon,
+	NULL AS max_lat,
+	NULL AS centro_lon,
+	NULL AS centro_lat`
 
 type rowScanner interface {
 	Scan(dest ...any) error
@@ -143,7 +163,23 @@ func NewSQLiteRepository(rutaDB string) (ports.ColoniaRepository, error) {
 	if err := db.Ping(); err != nil {
 		return nil, err
 	}
-	return &sqliteRepo{db: db}, nil
+	hasGeo := true
+	var dummy interface{}
+	if err := db.QueryRow("SELECT geometria FROM vw_colonias_busqueda LIMIT 1").Scan(&dummy); err != nil {
+		if strings.Contains(err.Error(), "no such column") {
+			hasGeo = false
+		}
+	}
+
+	sel := coloniaViewSelectLite
+	if hasGeo {
+		sel = coloniaViewSelectGeo
+	}
+
+	return &sqliteRepo{
+		db:            db,
+		coloniaSelect: sel,
+	}, nil
 }
 
 func scanColonia(scanner rowScanner) (domain.Colonia, error) {
@@ -236,7 +272,7 @@ func scanColonia(scanner rowScanner) (domain.Colonia, error) {
 }
 
 func (r *sqliteRepo) SearchColonias(filter ports.ColoniaSearchFilter) ([]domain.Colonia, error) {
-	base := "SELECT " + coloniaViewSelect + " FROM vw_colonias_busqueda v"
+	base := "SELECT " + r.coloniaSelect + " FROM vw_colonias_busqueda v"
 	where := make([]string, 0, 4)
 	args := make([]any, 0, 4)
 
@@ -371,7 +407,7 @@ func (r *sqliteRepo) SearchMunicipios(filter ports.MunicipioSearchFilter) ([]dom
 
 func (r *sqliteRepo) FindColoniasByPointBBox(filter ports.ReverseGeocodeFilter) ([]domain.Colonia, error) {
 	query := `
-		SELECT ` + coloniaViewSelect + `
+		SELECT ` + r.coloniaSelect + `
 		FROM vw_colonias_busqueda v
 		WHERE v.min_lat <= ?
 		  AND v.max_lat >= ?
@@ -458,7 +494,7 @@ func (r *sqliteRepo) CountColonias(filter ports.ColoniaSearchFilter) (int, error
 }
 
 func (r *sqliteRepo) FindColoniaByCodigoID(codigoID string) (*domain.Colonia, error) {
-	query := "SELECT " + coloniaViewSelect + " FROM vw_colonias_busqueda v WHERE v.codigo_id = ? LIMIT 1"
+	query := "SELECT " + r.coloniaSelect + " FROM vw_colonias_busqueda v WHERE v.codigo_id = ? LIMIT 1"
 	row := r.db.QueryRow(query, codigoID)
 
 	colonia, err := scanColonia(row)
@@ -481,7 +517,7 @@ func (r *sqliteRepo) FindNearestColoniasByCodigoID(codigoID string, limit int) (
 			  AND min_lat IS NOT NULL
 			  AND min_lon IS NOT NULL
 		)
-		SELECT ` + coloniaViewSelect + `,
+		SELECT ` + r.coloniaSelect + `,
 		       ((((v.min_lat + v.max_lat) / 2.0) - o.lat) * (((v.min_lat + v.max_lat) / 2.0) - o.lat) + (((v.min_lon + v.max_lon) / 2.0) - o.lon) * (((v.min_lon + v.max_lon) / 2.0) - o.lon)) AS dist2
 		FROM vw_colonias_busqueda v
 		JOIN origen o
@@ -533,7 +569,7 @@ func (r *sqliteRepo) FindNearestColoniasByCP(cp string, limit int) ([]domain.Col
 			ORDER BY dist2 ASC
 			LIMIT ?
 		)
-		SELECT ` + coloniaViewSelect + `,
+		SELECT ` + r.coloniaSelect + `,
 		       d.dist2
 		FROM distancias d
 		JOIN vw_colonias_busqueda v ON v.codigo_id = d.codigo_id
