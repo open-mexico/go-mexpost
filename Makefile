@@ -42,3 +42,13 @@ docker-lite:
 docker-geo:
 	@echo "Construyendo Docker GEO (con geometrías)... Esto puede tomar varios minutos."
 	@docker build --platform linux/amd64 --build-arg INCLUDE_GEO=true -t go-mexpost:geo .
+
+docker-push-lite:
+	@echo "Etiquetando y subiendo Docker LITE a Docker Hub..."
+	@docker tag go-mexpost:lite macarthuror/go-mexpost:lite
+	@docker push macarthuror/go-mexpost:lite
+
+docker-push-geo:
+	@echo "Etiquetando y subiendo Docker GEO a Docker Hub..."
+	@docker tag go-mexpost:geo macarthuror/go-mexpost:geo
+	@docker push macarthuror/go-mexpost:geo
