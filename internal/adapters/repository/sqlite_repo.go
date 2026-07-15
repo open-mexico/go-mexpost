@@ -30,8 +30,8 @@ const coloniaViewSelect = `
 	v.min_lat,
 	v.max_lon,
 	v.max_lat,
-	v.centro_lon,
-	v.centro_lat`
+	((v.min_lon + v.max_lon) / 2.0) AS centro_lon,
+	((v.min_lat + v.max_lat) / 2.0) AS centro_lat`
 
 type rowScanner interface {
 	Scan(dest ...any) error
@@ -472,19 +472,19 @@ func (r *sqliteRepo) FindColoniaByCodigoID(codigoID string) (*domain.Colonia, er
 func (r *sqliteRepo) FindNearestColoniasByCodigoID(codigoID string, limit int) ([]domain.ColoniaCercana, error) {
 	query := `
 		WITH origen AS (
-			SELECT codigo_id, centro_lat AS lat, centro_lon AS lon
+			SELECT codigo_id, ((min_lat + max_lat) / 2.0) AS lat, ((min_lon + max_lon) / 2.0) AS lon
 			FROM vw_colonias_busqueda
 			WHERE codigo_id = ?
-			  AND centro_lat IS NOT NULL
-			  AND centro_lon IS NOT NULL
+			  AND min_lat IS NOT NULL
+			  AND min_lon IS NOT NULL
 		)
 		SELECT ` + coloniaViewSelect + `,
-		       ((v.centro_lat - o.lat) * (v.centro_lat - o.lat) + (v.centro_lon - o.lon) * (v.centro_lon - o.lon)) AS dist2
+		       ((((v.min_lat + v.max_lat) / 2.0) - o.lat) * (((v.min_lat + v.max_lat) / 2.0) - o.lat) + (((v.min_lon + v.max_lon) / 2.0) - o.lon) * (((v.min_lon + v.max_lon) / 2.0) - o.lon)) AS dist2
 		FROM vw_colonias_busqueda v
 		JOIN origen o
 		WHERE v.codigo_id <> o.codigo_id
-		  AND v.centro_lat IS NOT NULL
-		  AND v.centro_lon IS NOT NULL
+		  AND v.min_lat IS NOT NULL
+		  AND v.min_lon IS NOT NULL
 		ORDER BY dist2 ASC, v.codigo, v.colonia_nombre
 		LIMIT ?`
 
@@ -512,19 +512,19 @@ func (r *sqliteRepo) FindNearestColoniasByCodigoID(codigoID string, limit int) (
 func (r *sqliteRepo) FindNearestColoniasByCP(cp string, limit int) ([]domain.ColoniaCercana, error) {
 	query := `
 		WITH origen AS (
-			SELECT codigo_id, centro_lat AS lat, centro_lon AS lon
+			SELECT codigo_id, ((min_lat + max_lat) / 2.0) AS lat, ((min_lon + max_lon) / 2.0) AS lon
 			FROM vw_colonias_busqueda
 			WHERE codigo = ?
-			  AND centro_lat IS NOT NULL
-			  AND centro_lon IS NOT NULL
+			  AND min_lat IS NOT NULL
+			  AND min_lon IS NOT NULL
 		),
 		distancias AS (
 			SELECT v.codigo_id,
-			       MIN((v.centro_lat - o.lat) * (v.centro_lat - o.lat) + (v.centro_lon - o.lon) * (v.centro_lon - o.lon)) AS dist2
+			       MIN((((v.min_lat + v.max_lat) / 2.0) - o.lat) * (((v.min_lat + v.max_lat) / 2.0) - o.lat) + (((v.min_lon + v.max_lon) / 2.0) - o.lon) * (((v.min_lon + v.max_lon) / 2.0) - o.lon)) AS dist2
 			FROM vw_colonias_busqueda v
 			JOIN origen o
-			WHERE v.centro_lat IS NOT NULL
-			  AND v.centro_lon IS NOT NULL
+			WHERE v.min_lat IS NOT NULL
+			  AND v.min_lon IS NOT NULL
 			  AND NOT EXISTS (SELECT 1 FROM origen x WHERE x.codigo_id = v.codigo_id)
 			GROUP BY v.codigo_id
 			ORDER BY dist2 ASC
