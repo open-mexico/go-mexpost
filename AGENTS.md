@@ -109,3 +109,8 @@ A change is considered done only if:
 ## 11. Contexto de Usuario
 - **Usuario Oficial:** El usuario oficial para Docker Hub, GitHub y cualquier otro servicio externo es `macarthuror`. 
 - **Documentación y Comandos:** Cuando se generen comandos de terminal, `Dockerfile`, scripts o documentación que requieran un nombre de usuario o espacio de nombres, utiliza siempre `macarthuror` (ej. `docker pull macarthuror/go-mexpost:lite`) en lugar de placeholders genéricos.
+
+## 12. Reglas de Despliegue y Errores (Aprendidas)
+
+- **Manejo de Errores Internos**: Nunca silencies los errores internos. Al devolver un error HTTP 500 genérico al cliente, siempre registra el error subyacente usando `log/slog` (ej. `slog.Error("Mensaje", "error", err)`) para facilitar el monitoreo y debugging en entornos de producción.
+- **Conexiones a SQLite (Producción)**: Dado que la base de datos `mapa.db` se empaqueta como un archivo estático y se despliega en contenedores (como Digital Ocean App Platform) que pueden tener sistemas de archivos de solo lectura o efímeros, la conexión a la base de datos debe inicializarse explícitamente en modo de solo lectura agregando `?mode=ro` al DSN (ej. `file:mapa.db?mode=ro`). Esto evita que SQLite intente crear archivos de bloqueo o logs de escritura que causan fallos en tiempo de ejecución.
